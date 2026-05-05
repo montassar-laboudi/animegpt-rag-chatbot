@@ -10,15 +10,39 @@ The project was built to practice modern full-stack AI development using **Next.
 ## Author
 
 Created by **Montassar Laboudi**.
+## Demo
 
+### Home Screen
+
+The app starts with a clean anime-inspired interface and suggested prompts to help users begin the conversation.
+
+![Home screen with prompt suggestions](./test/screenshot-1-home-screen-prompt-suggestions.png)
+
+---
+
+### Anime Recommendation Example
+
+In this example, the user asks for beginner-friendly anime recommendations.
+
+![Best anime for beginners example](./test/screenshot-2-best-anime-for-beginners.png)
+
+---
+
+### Follow-up Question Example
+
+The chatbot supports follow-up questions, allowing the conversation to continue naturally.
+
+![Follow-up question example](./test/screenshot-3-follow-up-question.png)
+
+---
 
 ## Overview
 
-AnimeGPT is not just a basic chatbot. It uses a RAG system to improve its answers with anime-related data stored in a vector database.
+AnimeGPT is more than a basic chatbot. It uses a **Retrieval-Augmented Generation (RAG)** system to improve the quality of its answers with anime-related data stored in a vector database.
 
-Instead of only relying on the AI model’s general knowledge, the app retrieves relevant anime content from a custom database and sends that context to OpenAI before generating a response.
+Instead of relying only on the AI model’s general knowledge, the app retrieves relevant anime content from a custom knowledge base and sends that context to OpenAI before generating a response.
 
-This helps the chatbot give more focused and useful answers for anime-related questions.
+This helps the chatbot provide answers that are more focused, useful, and relevant to anime-related questions.
 
 ---
 
@@ -34,8 +58,10 @@ This helps the chatbot give more focused and useful answers for anime-related qu
 - Manga and anime comparisons
 - Anime news and trend-based answers
 - Suggested starter prompts
+- Follow-up conversation support
 - Streaming chatbot responses
 - Clean anime-inspired user interface
+- Custom AnimeGPT logo
 - RAG-powered anime knowledge retrieval
 
 ---
@@ -80,9 +106,15 @@ nextjs-animegpt/
 ├── scripts/
 │   └── loadDb.ts
 │
+├── test/
+│   ├── screenshot-1-home-screen-prompt-suggestions.png
+│   ├── screenshot-2-best-anime-for-beginners.png
+│   └── screenshot-3-follow-up-question.png
+│
 ├── .env
 ├── .gitignore
 ├── eslint.config.mjs
+├── LICENSE
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package-lock.json
@@ -113,7 +145,7 @@ It uses Puppeteer to open pages, extract text, and prepare the content for proce
 
 ### 2. Text Splitting
 
-Large blocks of text are split into smaller chunks using LangChain.js.
+Large blocks of scraped text are split into smaller chunks using LangChain.js.
 
 This makes the content easier to embed, store, and retrieve later.
 
@@ -123,7 +155,7 @@ This makes the content easier to embed, store, and retrieve later.
 
 Each text chunk is converted into a vector embedding using OpenAI.
 
-Embeddings are numerical representations of text that allow the database to search by meaning instead of exact words.
+Embeddings are numerical representations of text that allow the database to search by meaning instead of exact word matching.
 
 ---
 
@@ -131,7 +163,7 @@ Embeddings are numerical representations of text that allow the database to sear
 
 The generated embeddings are stored in Astra DB.
 
-Each stored record contains:
+Each stored record can contain:
 
 - The text chunk
 - Its vector embedding
@@ -155,7 +187,7 @@ The user’s question is also converted into an embedding.
 
 Astra DB compares the user question embedding with the stored anime embeddings.
 
-It returns the most relevant anime text chunks.
+It returns the most relevant anime text chunks from the database.
 
 ---
 
@@ -163,7 +195,7 @@ It returns the most relevant anime text chunks.
 
 The retrieved context is sent to OpenAI along with the user’s question.
 
-OpenAI then generates a friendly anime-focused answer using the retrieved information.
+OpenAI then generates a friendly anime-focused response using the retrieved information.
 
 ---
 
@@ -184,6 +216,32 @@ OpenAI generates a response
         ↓
 Response streams back to the chat UI
 ```
+
+---
+
+## Example Use Case
+
+A user can ask:
+
+```txt
+What are the best anime for beginners?
+```
+
+AnimeGPT can then respond with beginner-friendly recommendations such as:
+
+- **My Hero Academia**
+- **Attack on Titan**
+- **One Punch Man**
+- **Your Name**
+- **Death Note**
+
+The user can continue the conversation with a follow-up question like:
+
+```txt
+Which one should I start first?
+```
+
+AnimeGPT then gives a more focused recommendation based on the previous answer.
 
 ---
 
@@ -216,13 +274,13 @@ OPENAI_API_KEY=your_openai_api_key
 Clone the project:
 
 ```bash
-git clone (https://github.com/montassar-laboudi/animegpt-rag-chatbot)
+git clone https://github.com/montassar-laboudi/animegpt-rag-chatbot.git
 ```
 
 Go into the project folder:
 
 ```bash
-cd anime-chatbot-gpt/nextjs-animegpt
+cd animegpt-rag-chatbot
 ```
 
 Install dependencies:
@@ -361,7 +419,7 @@ Shows a loading animation while the assistant is generating a response.
 
 ### `app/components/PromptSuggestionsRow.tsx`
 
-Displays suggested prompts for users when the chat is empty.
+Displays suggested prompts when the chat is empty.
 
 ---
 
@@ -382,35 +440,13 @@ app/global.css
 The design includes:
 
 - Anime-inspired background
+- Custom AnimeGPT logo
 - Rounded chat container
 - User and assistant message bubbles
 - Prompt suggestion buttons
 - Loading animation
-- Clean, centered layout
-
----
-
-## Deployment
-
-This app can be deployed on Vercel.
-
-### Deployment Steps
-
-1. Push the project to GitHub.
-2. Go to Vercel.
-3. Import the GitHub repository.
-4. Add the required environment variables.
-5. Deploy the project.
-
-Make sure these variables are added in the Vercel dashboard:
-
-```env
-ASTRA_DB_NAMESPACE
-ASTRA_DB_COLLECTION
-ASTRA_DB_API_ENDPOINT
-ASTRA_DB_APPLICATION_TOKEN
-OPENAI_API_KEY
-```
+- Clean centered layout
+- Soft colors for readability
 
 ---
 
@@ -418,6 +454,7 @@ OPENAI_API_KEY
 
 - This is a personal project created for learning and experimentation.
 - The chatbot is not an official anime database.
+- The logo and UI design were created specifically for this project.
 - The quality of answers depends on the quality of the scraped and stored data.
 - Some websites may block scraping or return limited content.
 - API-based anime data sources are usually more reliable than scraping normal web pages.
@@ -490,26 +527,9 @@ Possible fixes:
 
 If imports like `useChat`, `OpenAIStream`, or `StreamingTextResponse` fail, check your AI SDK version.
 
-For the older tutorial-style code, the project should use a compatible older version of the AI SDK.
+For older tutorial-style code, the project should use a compatible older version of the AI SDK.
 
----
 
-## Future Improvements
-
-- Add user authentication
-- Save chat history
-- Add anime images and posters
-- Add voice input
-- Add dark mode
-- Add spoiler-safe mode toggle
-- Improve mobile responsiveness
-- Add better anime APIs
-- Add source citations in answers
-- Improve scraped data cleaning
-- Add genre and mood filters
-- Add anime watchlist features
-
----
 
 ## Project Status
 
@@ -523,6 +543,9 @@ The main goal of the project is to practice:
 - API routes in Next.js
 - Chat UI development
 - Data scraping and embedding workflows
+- UI design and project presentation
+
+---
 
 ## License
 
