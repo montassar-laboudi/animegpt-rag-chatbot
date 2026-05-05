@@ -1,0 +1,149 @@
+* {
+    font-family: Verdana, Verdana, Geneva, Tahoma, sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-image: url("assets/anime_ui_background.avif");
+    background-size: cover;
+    background-position: center;
+}
+
+main {
+  width: 80vw;
+  height: 80vh;
+  background: linear-gradient(to bottom, #f8f8f8, #cfcfcf);
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  text-align: center;
+  color: #383838;
+  overflow: hidden;
+  
+}
+
+
+section {
+    width: 100%;
+
+}
+
+section.populated {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 10px;
+}
+
+.starter-text {
+    padding: 0 80px;
+}
+
+form {
+  flex-shrink: 0;
+  height: 50px;
+  width: 100%;
+  display: flex;
+  border-top: #828282 solid 2px;
+  padding-top: 20px;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
+
+
+input.question-box {
+    width: 85%;
+    padding: 10px;
+    font-size: 15px;
+    color: #383838;
+    border: none;
+}
+
+input[type="submit"] {
+  width: 15%;
+  padding: 10px;
+  font-size: 15px;
+  border: none;
+  color: black;
+  background-color: #411b8d;
+}
+
+input:focus {
+    outline: none;
+}
+
+.bubble {
+    margin: 8px;
+    padding: 8px;
+    font-size: 15px;
+    border: none;
+    color: #383838;
+    box-shadow: #959da533 0 8px 24px;
+    width: 80%;
+    text-align: left
+}
+
+
+.bubble.user {
+    border-radius: 20px 20px 0 20px;
+    background-color: #E1F4FFFF;
+    margin-left: auto;
+}
+
+.bubble.assistant {
+    border-radius: 20px 20px 20px 0;
+    background-color: #dce7ff;
+}
+
+.prompt-suggestion-row {
+    width: 100%;
+}
+
+
+.prompt-suggestion-button {
+    margin: 5px;
+    padding: 10px;
+    font-size: 15px;
+    border: none;
+    color: #383838;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: #959da533 0 8px 24px;
+}
+
+
+.loader {
+  margin: 10px;
+  width: 60px;
+  aspect-ratio: 4;
+  background:
+    no-repeat radial-gradient(circle closest-side, #383838 90%, #0000) 0 50%,
+    no-repeat radial-gradient(circle closest-side, #383838 90%, #0000) 50% 50%,
+    no-repeat radial-gradient(circle closest-side, #383838 90%, #0000) 100% 50%;
+  background-size: calc(100% / 3) 100%;
+  animation: loading 1s infinite linear;
+}
+
+@keyframes loading {
+  33% {
+    background-size: calc(100% / 3) 0, calc(100% / 3) 100%, calc(100% / 3) 100%;
+  }
+
+  50% {
+    background-size: calc(100% / 3) 100%, calc(100% / 3) 0, calc(100% / 3) 100%;
+  }
+
+  66% {
+    background-size: calc(100% / 3) 100%, calc(100% / 3) 100%, calc(100% / 3) 0;
+  }
+}
