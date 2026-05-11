@@ -8,8 +8,8 @@ interface PromptSuggestionsRowProps {
 
 const PROMPT_SUGGESTIONS = [
   {
-    title: 'Best anime of 2026',
-    prompt: 'What are the best anime released in 2026?',
+    title: 'Solo Leveling season 2',
+    prompt: 'Tell me about Solo Leveling season 2 and what happens after season 1.',
   },
   {
     title: 'Hidden gems',
