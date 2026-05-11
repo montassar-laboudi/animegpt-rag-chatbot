@@ -30,23 +30,48 @@ const openai = new OpenAI({
 
 // List of anime-related websites to scrape data from
 const AnimeData = [
+  // === NEWS & REVIEWS ===
   "https://www.animenewsnetwork.com/news/",
   "https://www.animenewsnetwork.com/review/",
-  "https://www.animenewsnetwork.com/interest/",
+  "https://www.animenewsnetwork.com/encyclopedia/",
+  "https://www.crunchyroll.com/news",
+  "https://www.cbr.com/anime/",
+  "https://screenrant.com/anime/",
+
+  // === ANIME DATABASE (rich metadata, ratings, synopsis) ===
+  "https://myanimelist.net/topanime.php",
+  "https://myanimelist.net/anime/season",
+  "https://myanimelist.net/recommendations/anime",
+  "https://anilist.co/search/anime/trending",
+  "https://anilist.co/search/anime/top-100",
+
+  // === SEASONAL & SCHEDULE ===
   "https://www.livechart.me/",
   "https://www.livechart.me/schedule",
-  "https://www.anime-planet.com/anime/",
+  "https://www.livechart.me/winter-2026/tv",
+  "https://www.livechart.me/spring-2026/tv",
+
+  // === RECOMMENDATIONS & DISCOVERY ===
   "https://www.anime-planet.com/anime/all",
+  "https://www.anime-planet.com/anime/top-anime",
+  "https://www.anime-planet.com/anime/trending",
+
+  // === FILLER GUIDES ===
   "https://www.animefillerlist.com/shows",
   "https://www.animefillerlist.com/shows/one-piece",
   "https://www.animefillerlist.com/shows/naruto-shippuden",
   "https://www.animefillerlist.com/shows/bleach",
-  "https://www.animefillerlist.com/shows/dragon-ball-z",
-  "https://www.animefillerlist.com/shows/fairy-tail",
-  "https://www.cbr.com/anime/",
-  "https://screenrant.com/anime/",
-  "https://gamerant.com/anime/",
-  "https://www.behindthevoiceactors.com/tv-shows/"
+  "https://www.animefillerlist.com/shows/dragon-ball-super",
+  "https://www.animefillerlist.com/shows/boruto",
+  "https://www.animefillerlist.com/shows/black-clover",
+
+  // === CHARACTERS & VOICE ACTORS ===
+  "https://www.behindthevoiceactors.com/tv-shows/",
+  "https://myanimelist.net/character.php",
+
+  // === WIKI & DEEP LORE ===
+  "https://en.wikipedia.org/wiki/List_of_anime_series_by_episode_count",
+  "https://en.wikipedia.org/wiki/List_of_highest-rated_anime_television_series",
 ];
 
 // Initialize Astra DB client and connect to the database
