@@ -1,75 +1,123 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import animegptLogo from "./assets/Animegpt-Logo.png";
+import { useChat } from 'ai/react';
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import Bubble from './components/Bubble';
+import PromptSuggestionsRow from './components/PromptSuggestionsRow';
 
-import { useChat } from "ai/react";
-import { Message } from "ai";
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit, append, isLoading } = useChat();
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-import PromptSuggestionsRow from "./components/PromptSuggestionsRow";
-import Bubble from "./components/Bubble";
-import LoadingBubble from "./components/LoadingBubble";
+  // Load theme from localStorage
+  useEffect(() => {
+    const savedTheme = (localStorage.getItem('anime-gpt-theme') as 'dark' | 'light') || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
 
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('anime-gpt-theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
 
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (input.trim()) {
+      handleSubmit(e);
+    }
+  };
 
-
-const Home = () => {
-
-
-  const { append, isLoading,messages, input, handleInputChange, handleSubmit } = useChat();
-  const noMessages = !messages || messages.length === 0;
-  
-  const handlePrompt = ( promptText ) => {
-    const msg: Message = {
-        id: crypto.randomUUID(),
-        content: promptText,
-        role: "user"
-    };
-    append(msg);
-  } 
-
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim() && !isLoading) {
+        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+      }
+    }
+  };
 
   return (
-    <main>
-      <Image
-        src={animegptLogo}
-        width={250}
-        alt="AnimeGPT Logo"
-        priority
-       />
+    <div className="page-wrapper">
+      {/* Header with Logo and Theme Toggle */}
+      <header className="header">
+        <div className="logo-container">
+          <div className="logo">✦</div>
+          <h1 className="logo-text">AnimeGPT</h1>
+        </div>
+        <button
+          onClick={toggleTheme}
+          className="theme-toggle"
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+      </header>
 
-      <section className={noMessages ? "" : "populated"}>
-        {noMessages ? (
-          <>
-            <p className="starter-text">
-              Ask me about anime recommendations, characters, storylines, episodes, or the latest anime news.
-            </p>
-
-            <br />
-
-            <PromptSuggestionsRow onPromptClick={handlePrompt} /> 
-          </>
+      {/* Chat Messages Container */}
+      <div className="messages-container">
+        {messages.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">✦</div>
+            <h2>Welcome to AnimeGPT</h2>
+            <p>Ask me anything about anime — recommendations, characters, watch orders, and more!</p>
+          </div>
         ) : (
-          <>
-            {messages.map((message, index) => (<Bubble key={`message-${index}`} message={message} />))}
-            {isLoading && <LoadingBubble />}
-          </>
+          <div className="messages-list">
+            {messages.map((message, index) => (
+              <Bubble key={index} message={message} />
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
         )}
+      </div>
 
-        
-      </section>
-      <form onSubmit={handleSubmit}>
-          <input
-            className="question-box"
-            onChange={handleInputChange}
-            value={input}
-            placeholder="Ask me anything about anime..."
-          />
-          <input type="submit"/>
-        </form>
-    </main>
+      {/* Prompt Suggestions */}
+      {messages.length === 0 && (
+        <div className="suggestions-section">
+          <PromptSuggestionsRow onSubmit={append} />
+        </div>
+      )}
+
+      {/* Input Bar */}
+      <footer className="input-footer">
+        <div className="input-bar-wrapper">
+          <form onSubmit={onSubmit} className="input-form">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me about anime, characters, recommendations..."
+              className="input-field"
+              disabled={isLoading}
+              rows={1}
+            />
+            <button
+              type="submit"
+              className="send-button"
+              disabled={isLoading || !input.trim()}
+              aria-label="Send message"
+            >
+              {isLoading ? (
+                <span className="loader" />
+              ) : (
+                <span className="send-icon">→</span>
+              )}
+            </button>
+          </form>
+        </div>
+      </footer>
+    </div>
   );
-};
-
-export default Home;
+}
