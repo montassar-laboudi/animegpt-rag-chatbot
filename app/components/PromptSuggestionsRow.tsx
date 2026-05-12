@@ -2,30 +2,18 @@
 
 import { Message } from 'ai';
 
-interface PromptSuggestionsRowProps {
-  onSubmit: (message: Message) => void;
+interface Suggestion {
+  title: string;
+  prompt: string;
 }
 
-const PROMPT_SUGGESTIONS = [
-  {
-    title: 'Solo Leveling season 2',
-    prompt: 'Tell me about Solo Leveling season 2 and what happens after season 1.',
-  },
-  {
-    title: 'Hidden gems',
-    prompt: 'Recommend underrated anime that most people have never heard of but are absolutely worth watching.',
-  },
-  {
-    title: 'One Piece new arc',
-    prompt: 'What is the latest arc in One Piece and where should I start watching?',
-  },
-  {
-    title: 'Anime like Jujutsu Kaisen',
-    prompt: 'Recommend anime similar to Jujutsu Kaisen with dark themes and intense battles.',
-  },
-];
+interface PromptSuggestionsRowProps {
+  onSubmit: (message: Message) => void;
+  suggestions: Suggestion[];
+  isLoading?: boolean;
+}
 
-export default function PromptSuggestionsRow({ onSubmit }: PromptSuggestionsRowProps) {
+export default function PromptSuggestionsRow({ onSubmit, suggestions, isLoading }: PromptSuggestionsRowProps) {
   const handleClick = (prompt: string) => {
     onSubmit({
       role: 'user',
@@ -33,9 +21,25 @@ export default function PromptSuggestionsRow({ onSubmit }: PromptSuggestionsRowP
     } as Message);
   };
 
+  if (isLoading) {
+    return (
+      <div className="suggestions-row">
+        {[1, 2, 3, 4].map(i => (
+          <div
+            key={i}
+            className="suggestion-button"
+            style={{ opacity: 0.3, pointerEvents: 'none', minWidth: '130px' }}
+          >
+            &nbsp;
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="suggestions-row">
-      {PROMPT_SUGGESTIONS.map((suggestion, index) => (
+      {suggestions.map((suggestion, index) => (
         <button
           key={index}
           onClick={() => handleClick(suggestion.prompt)}

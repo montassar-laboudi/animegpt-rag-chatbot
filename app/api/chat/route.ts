@@ -126,7 +126,45 @@ My top pick for you would be **Jujutsu Kaisen** because it has the closest mix o
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const messages: ChatMessage[] = body.messages || [];
+    const { messages: rawMessages, imageBase64, mimeType } = body as {
+      messages: ChatMessage[];
+      imageBase64?: string;
+      mimeType?: string;
+    };
+    const messages: ChatMessage[] = rawMessages || [];
+
+    // ── Vision mode: image uploaded ──────────────────────────────────────────
+    if (imageBase64 && mimeType) {
+      const lastMessage = messages[messages.length - 1];
+      const userText =
+        lastMessage?.content?.toString().trim() ||
+        'You are an anime expert. Identify this anime image. Tell me: the anime name, characters visible, arc or episode if recognizable, and a brief spoiler-free description. Be enthusiastic like an anime fan.';
+
+      const visionResponse = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        max_tokens: 1000,
+        stream: true,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${imageBase64}`,
+                  detail: 'high',
+                },
+              },
+              { type: 'text', text: userText },
+            ],
+          },
+        ],
+      });
+
+      const visionStream = OpenAIStream(visionResponse as Parameters<typeof OpenAIStream>[0]);
+      return new StreamingTextResponse(visionStream);
+    }
+    // ── End vision mode ───────────────────────────────────────────────────────
 
     if (!messages.length) {
       return new Response("No messages provided.", {
