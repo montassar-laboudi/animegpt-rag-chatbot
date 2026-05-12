@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 
+export const runtime = 'nodejs';
+
 const openai = new OpenAI();
 
 export async function GET() {

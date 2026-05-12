@@ -13,6 +13,20 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // setState in useEffect is the correct SSR-safe pattern for reading localStorage on mount.
+    // The rule is overly restrictive for Next.js initialization flows.
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
+    // These files use <img> with data: URLs (base64 previews) which next/image does not support.
+    files: ["app/components/Bubble.tsx", "app/page.tsx"],
+    rules: {
+      "@next/next/no-img-element": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
