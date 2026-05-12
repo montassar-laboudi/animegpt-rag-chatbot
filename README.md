@@ -1,82 +1,138 @@
 # AnimeGPT
 
-AnimeGPT is a personal AI chatbot project built for anime fans. It lets users ask questions about anime, get recommendations, explore characters, understand storylines, check watch orders, and receive friendly anime-focused answers through a clean chat interface.
+AnimeGPT is a personal AI chatbot project built for anime fans. It lets users ask questions about anime, get recommendations, explore characters, understand storylines, check watch orders, and receive friendly anime-focused answers through a modern chat interface.
 
-The project was built to practice modern full-stack AI development using **Next.js**, **OpenAI**, **Astra DB**, **LangChain.js**, and a **Retrieval-Augmented Generation (RAG)** workflow.
+The project was built to practice modern full-stack AI development using **Next.js**, **OpenAI**, **Astra DB**, **LangChain.js**, and a **Retrieval-Augmented Generation (RAG)** workflow — extended with GPT-4o vision support, conversation history, dark/light theming, and image-based anime identification.
 
 ---
-
 
 ## Author
 
 Created by **Montassar Laboudi**.
+
+---
+
 ## Demo
 
-### Home Screen
+### Home Screen — Dark Mode
 
-The app starts with a clean anime-inspired interface and suggested prompts to help users begin the conversation.
+The app opens with a clean dark interface, a custom AnimeGPT logo, and four dynamic prompt suggestions generated fresh by GPT.
 
-![Home screen with prompt suggestions](./test/screenshot-1-home-screen-prompt-suggestions.png)
-
----
-
-### Anime Recommendation Example
-
-In this example, the user asks for beginner-friendly anime recommendations.
-
-![Best anime for beginners example](./test/screenshot-2-best-anime-for-beginners.png)
+![Home screen dark mode](./test/screenshot-01-home-dark.png)
 
 ---
 
-### Follow-up Question Example
+### Home Screen — Light Mode
 
-The chatbot supports follow-up questions, allowing the conversation to continue naturally.
+A single toggle switches the entire interface to light mode. The theme is saved across sessions.
 
-![Follow-up question example](./test/screenshot-3-follow-up-question.png)
+![Home screen light mode](./test/screenshot-02-home-light.png)
+
+---
+
+### Conversation Sidebar
+
+The sidebar lists all saved conversations sorted by most recent. Each conversation can be renamed, resumed, or deleted independently.
+
+![Sidebar open with conversation list](./test/screenshot-03-sidebar-open.png)
+
+---
+
+### Anime Recommendation
+
+A user asks for anime recommendations. AnimeGPT responds with a formatted, markdown-styled list including reasons for each pick.
+
+![Anime recommendation chat](./test/screenshot-04-chat-recommendation.png)
+
+---
+
+### Follow-up Question
+
+The conversation continues naturally. AnimeGPT keeps context across messages and gives a focused follow-up answer.
+
+![Follow-up question in same conversation](./test/screenshot-05-follow-up.png)
+
+---
+
+### Image Upload Preview
+
+The user attaches an image using the upload button. The image appears in the preview bar above the input before sending.
+
+![Image preview bar before sending](./test/screenshot-06-image-preview-bar.png)
+
+---
+
+### Anime Image Identification
+
+Using the "Find your anime using images" feature card, the user selects an image. AnimeGPT automatically identifies the anime, characters, scene context, synopsis, genres, and similar recommendations.
+
+![Anime identification result for Zoro from One Piece](./test/screenshot-07-identify-response.png)
+
+---
+
+### Paste Image via Ctrl+V
+
+The user pastes an image directly into the chat input using Ctrl+V. The image appears in the preview bar, ready to send.
+
+![AOT logo pasted via Ctrl+V](./test/screenshot-08-paste-image.png)
+
+---
+
+### Typing Indicator
+
+While AnimeGPT is generating a response, an animated typing bubble with three bouncing dots is shown.
+
+![Animated typing bubble](./test/screenshot-09-typing-bubble.png)
 
 ---
 
 ## Overview
 
-AnimeGPT is more than a basic chatbot. It uses a **Retrieval-Augmented Generation (RAG)** system to improve the quality of its answers with anime-related data stored in a vector database.
+AnimeGPT is more than a basic chatbot. It uses a **Retrieval-Augmented Generation (RAG)** system to improve answer quality with anime-related data stored in a vector database.
 
-Instead of relying only on the AI model’s general knowledge, the app retrieves relevant anime content from a custom knowledge base and sends that context to OpenAI before generating a response.
+Instead of relying only on the AI model's general knowledge, the app retrieves relevant anime content from a custom knowledge base and sends that context to OpenAI before generating a response.
 
-This helps the chatbot provide answers that are more focused, useful, and relevant to anime-related questions.
+The app also supports **GPT-4o vision**: users can upload or paste an anime screenshot and AnimeGPT will identify the anime, characters, and scene in a structured response.
+
+All conversations are saved locally in the browser and can be resumed or managed from the sidebar.
 
 ---
 
 ## Features
 
-- Anime recommendations
-- Similar anime suggestions
-- Character explanations
-- Story summaries
-- Watch order help
-- Episode and filler guidance
-- Anime genre explanations
-- Manga and anime comparisons
-- Anime news and trend-based answers
-- Suggested starter prompts
-- Follow-up conversation support
-- Streaming chatbot responses
-- Clean anime-inspired user interface
-- Custom AnimeGPT logo
-- RAG-powered anime knowledge retrieval
+- Anime recommendations, character explanations, story summaries, watch orders
+- Episode and filler guidance, genre explanations, manga comparisons
+- Anime news and trend-based answers for 2026
+- Dynamic prompt suggestions generated by GPT on each session
+- Conversation history with sidebar — create, switch, rename, delete conversations
+- Conversations sorted by most recent activity
+- Per-conversation message isolation — each chat stores its own history independently
+- Streaming chatbot responses with animated typing indicator
+- Dark and light mode with persistent theme preference
+- Image upload via button or Ctrl+V paste
+- "Find your anime using images" feature — auto-identifies anime from screenshots
+- Structured 7-section identification response (anime, characters, scene, synopsis, genres, why watch, similar picks)
+- Images displayed inline in chat bubbles
+- Copy button on assistant messages
+- Auto-growing textarea input (up to 140px)
+- Mobile-friendly sidebar with backdrop overlay
+- RAG-powered anime knowledge retrieval from Astra DB
+- Custom AnimeGPT logo and branding
 
 ---
 
 ## Tech Stack
 
-- **Next.js** — Full-stack React framework
+- **Next.js** — Full-stack React framework (App Router)
 - **React** — UI components and client-side interactivity
 - **TypeScript** — Type-safe JavaScript development
-- **OpenAI** — Chat responses and text embeddings
-- **Vercel AI SDK** — Streaming AI chat responses
-- **Astra DB** — Vector database for storing anime embeddings
+- **OpenAI** — Chat responses, text embeddings, and GPT-4o vision
+- **Vercel AI SDK** — Streaming AI chat responses (`useChat`, `OpenAIStream`)
+- **Astra DB** — Vector database for storing and retrieving anime embeddings
 - **LangChain.js** — Text splitting and document processing
 - **Puppeteer** — Scraping anime-related website content
-- **CSS** — Custom anime-inspired styling
+- **ReactMarkdown** — Rendering markdown-formatted AI responses
+- **CSS custom properties** — Dark/light theming
 
 ---
 
@@ -86,30 +142,44 @@ This helps the chatbot provide answers that are more focused, useful, and releva
 nextjs-animegpt/
 ├── app/
 │   ├── api/
-│   │   └── chat/
-│   │       └── route.ts
+│   │   ├── chat/
+│   │   │   └── route.ts           ← Main chat API (RAG + GPT-4o vision)
+│   │   ├── generate-title/
+│   │   │   └── route.ts           ← Generates conversation titles
+│   │   └── suggestions/
+│   │       └── route.ts           ← Generates dynamic prompt suggestions
 │   │
 │   ├── assets/
-│   │   ├── anime_ui_background.avif
-│   │   └── Animegpt-Logo.png
+│   │   ├── AG-Logo.png            ← AnimeGPT logo (used in header + assistant bubble)
+│   │   ├── Animegpt-Logo.svg      ← SVG logo variant
+│   │   └── AOT.png                ← Image upload button icon
 │   │
 │   ├── components/
-│   │   ├── Bubble.tsx
-│   │   ├── LoadingBubble.tsx
+│   │   ├── Bubble.tsx             ← Chat message bubble (user + assistant)
 │   │   ├── PromptSuggestionButton.tsx
-│   │   └── PromptSuggestionsRow.tsx
+│   │   ├── PromptSuggestionsRow.tsx
+│   │   └── Sidebar.tsx            ← Conversation sidebar
 │   │
-│   ├── global.css
+│   ├── global.css                 ← All styles with dark/light CSS variables
 │   ├── layout.tsx
-│   └── page.tsx
+│   └── page.tsx                   ← Main chat page with all state and logic
+│
+├── lib/
+│   └── useConversations.ts        ← Conversation persistence hook (localStorage)
 │
 ├── scripts/
-│   └── loadDb.ts
+│   └── loadDb.ts                  ← Scrape + embed + seed Astra DB
 │
 ├── test/
-│   ├── screenshot-1-home-screen-prompt-suggestions.png
-│   ├── screenshot-2-best-anime-for-beginners.png
-│   └── screenshot-3-follow-up-question.png
+│   ├── screenshot-01-home-dark.png
+│   ├── screenshot-02-home-light.png
+│   ├── screenshot-03-sidebar-open.png
+│   ├── screenshot-04-chat-recommendation.png
+│   ├── screenshot-05-follow-up.png
+│   ├── screenshot-06-image-preview-bar.png
+│   ├── screenshot-07-identify-response.png
+│   ├── screenshot-08-paste-image.png
+│   └── screenshot-09-typing-bubble.png
 │
 ├── .env
 ├── .gitignore
@@ -117,7 +187,6 @@ nextjs-animegpt/
 ├── LICENSE
 ├── next-env.d.ts
 ├── next.config.ts
-├── package-lock.json
 ├── package.json
 ├── README.md
 └── tsconfig.json
@@ -127,13 +196,11 @@ nextjs-animegpt/
 
 ## How It Works
 
-AnimeGPT uses a **Retrieval-Augmented Generation** workflow.
+AnimeGPT uses a **Retrieval-Augmented Generation** workflow for text questions and **GPT-4o vision** for image questions.
 
 ### 1. Data Collection
 
 The project uses a seed script to collect anime-related text from selected websites.
-
-The script is located here:
 
 ```txt
 scripts/loadDb.ts
@@ -145,109 +212,134 @@ It uses Puppeteer to open pages, extract text, and prepare the content for proce
 
 ### 2. Text Splitting
 
-Large blocks of scraped text are split into smaller chunks using LangChain.js.
-
-This makes the content easier to embed, store, and retrieve later.
+Large blocks of scraped text are split into smaller chunks using LangChain.js. This makes the content easier to embed, store, and retrieve.
 
 ---
 
 ### 3. Embedding Generation
 
-Each text chunk is converted into a vector embedding using OpenAI.
-
-Embeddings are numerical representations of text that allow the database to search by meaning instead of exact word matching.
+Each text chunk is converted into a vector embedding using OpenAI's `text-embedding-3-small` model. Embeddings are numerical representations of text that allow the database to search by meaning instead of exact word matching.
 
 ---
 
 ### 4. Vector Storage
 
-The generated embeddings are stored in Astra DB.
-
-Each stored record can contain:
-
-- The text chunk
-- Its vector embedding
-- Optional metadata such as the source URL
+The generated embeddings are stored in Astra DB. Each record contains the text chunk, its vector, and an optional source URL.
 
 ---
 
 ### 5. User Question
 
-When a user asks a question, the app sends the message to the API route:
+When a user asks a text question, the API route embeds the message and searches Astra DB for the most similar anime content. The retrieved context is included in the system prompt sent to `gpt-4o-mini`.
 
-```txt
-app/api/chat/route.ts
-```
-
-The user’s question is also converted into an embedding.
+When a user uploads or pastes an image, the API route sends it directly to `gpt-4o` as a base64-encoded image with a structured identification prompt. RAG is bypassed for image queries.
 
 ---
 
-### 6. Context Retrieval
+### 6. Response Streaming
 
-Astra DB compares the user question embedding with the stored anime embeddings.
-
-It returns the most relevant anime text chunks from the database.
-
----
-
-### 7. AI Response
-
-The retrieved context is sent to OpenAI along with the user’s question.
-
-OpenAI then generates a friendly anime-focused response using the retrieved information.
+The OpenAI response is streamed back to the browser token by token. A typing indicator is shown while the response is in flight.
 
 ---
 
 ## Chat Flow
 
 ```txt
-User sends message
+User sends a text message
         ↓
 Next.js API route receives request
         ↓
 OpenAI creates an embedding for the question
         ↓
-Astra DB finds similar anime content
+Astra DB finds the most similar anime content
         ↓
-Relevant context is added to the prompt
+Relevant context is added to the system prompt
         ↓
-OpenAI generates a response
+gpt-4o-mini generates a streamed response
         ↓
-Response streams back to the chat UI
+Response streams into the chat bubble
+```
+
+```txt
+User uploads or pastes an image
+        ↓
+Image is base64-encoded in the browser
+        ↓
+Next.js API route receives image + hidden prompt
+        ↓
+gpt-4o identifies the anime, characters, and scene
+        ↓
+Structured response streams into the chat bubble
 ```
 
 ---
 
-## Example Use Case
+## Image Identification Feature
 
-A user can ask:
+The "Find your anime using images" feature card lets users identify any anime from a screenshot.
+
+**How to use it:**
+
+1. Click the feature card on the home screen
+2. Select an image file (or paste an image with Ctrl+V into the input)
+3. AnimeGPT submits the image automatically
+4. A structured response appears covering:
+   - Anime name
+   - Visible characters
+   - Scene context
+   - Spoiler-free synopsis
+   - Genres and themes
+   - Why you should watch it
+   - Similar anime you might like
+
+The prompt shown in the chat is a friendly `🔍 Identify this anime` display text. The actual detailed identification prompt is sent silently to the API without being shown to the user.
+
+---
+
+## Conversation Sidebar
+
+All conversations are stored in the browser's `localStorage` and managed by the `useConversations` hook in `lib/useConversations.ts`.
+
+**Sidebar features:**
+
+- New Chat button creates a fresh conversation
+- Each conversation shows its auto-generated title and last active time
+- Conversations are sorted by most recent activity
+- Switching conversations loads that conversation's exact messages
+- Deleting a conversation removes it from the list and storage
+- Clear All removes every conversation at once
+
+Conversation titles are generated automatically by GPT after the first assistant response. If a title already exists it is never overwritten.
+
+---
+
+## Example Use Cases
 
 ```txt
 What are the best anime for beginners?
 ```
 
-AnimeGPT can then respond with beginner-friendly recommendations such as:
-
-- **My Hero Academia**
-- **Attack on Titan**
-- **One Punch Man**
-- **Your Name**
-- **Death Note**
-
-The user can continue the conversation with a follow-up question like:
-
 ```txt
-Which one should I start first?
+Recommend me an anime like Solo Leveling
 ```
 
-AnimeGPT then gives a more focused recommendation based on the previous answer.
+```txt
+Give me a spoiler-free explanation of One Piece
+```
+
+```txt
+What should I watch after Demon Slayer?
+```
+
+```txt
+[upload a screenshot] → AnimeGPT identifies the anime and characters
+```
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file in the root of the project:
+Create a `.env` file in the project root:
 
 ```env
 ASTRA_DB_NAMESPACE=your_astra_namespace
@@ -257,15 +349,13 @@ ASTRA_DB_APPLICATION_TOKEN=your_astra_application_token
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-### Environment Variable Details
-
 | Variable | Description |
 |---|---|
-| `ASTRA_DB_NAMESPACE` | Astra DB namespace/keyspace |
+| `ASTRA_DB_NAMESPACE` | Astra DB namespace / keyspace |
 | `ASTRA_DB_COLLECTION` | Collection used to store anime vectors |
-| `ASTRA_DB_API_ENDPOINT` | Astra DB API endpoint |
+| `ASTRA_DB_API_ENDPOINT` | Astra DB API endpoint URL |
 | `ASTRA_DB_APPLICATION_TOKEN` | Astra DB authentication token |
-| `OPENAI_API_KEY` | OpenAI API key for embeddings and chat responses |
+| `OPENAI_API_KEY` | OpenAI API key (used for embeddings, chat, and vision) |
 
 ---
 
@@ -293,8 +383,6 @@ npm install
 
 ## Running the Development Server
 
-Start the app locally:
-
 ```bash
 npm run dev
 ```
@@ -309,53 +397,19 @@ http://localhost:3000
 
 ## Loading Anime Data
 
-To scrape anime data, create embeddings, and store them in Astra DB, run:
+To scrape anime data, create embeddings, and store them in Astra DB:
 
 ```bash
 npm run seed
 ```
 
-This command runs:
+This runs `scripts/loadDb.ts`, which:
 
-```txt
-scripts/loadDb.ts
-```
-
-The seed script:
-
-1. Opens anime-related websites
-2. Extracts page text
-3. Splits the text into chunks
-4. Creates OpenAI embeddings
+1. Opens anime-related websites using Puppeteer
+2. Extracts and cleans page text
+3. Splits the text into chunks using LangChain.js
+4. Creates OpenAI embeddings for each chunk
 5. Saves the chunks and vectors into Astra DB
-
----
-
-## Using the App
-
-Once the development server is running, open the app and ask anime-related questions.
-
-Example prompts:
-
-```txt
-Recommend me an anime like Solo Leveling
-```
-
-```txt
-What are the best anime for beginners?
-```
-
-```txt
-Give me a spoiler-free explanation of One Piece
-```
-
-```txt
-Suggest a short anime I can finish quickly
-```
-
-```txt
-What should I watch after Demon Slayer?
-```
 
 ---
 
@@ -363,90 +417,81 @@ What should I watch after Demon Slayer?
 
 ### `app/page.tsx`
 
-The main chatbot page.
-
-It handles:
-
-- Chat UI
-- User input
-- Message rendering
-- Prompt suggestions
-- Loading state
+The main chatbot page. Handles all chat state, conversation switching, image upload logic, theme toggling, sidebar open/close, and message rendering.
 
 ---
 
 ### `app/api/chat/route.ts`
 
-The backend API route for the chatbot.
-
-It handles:
-
-- Receiving user messages
-- Creating embeddings
-- Searching Astra DB
-- Building the AI prompt
-- Streaming the OpenAI response
+The backend API route. Handles both text questions (RAG + gpt-4o-mini) and image questions (GPT-4o vision). Validates environment variables, builds context from Astra DB, and streams the OpenAI response.
 
 ---
 
-### `scripts/loadDb.ts`
+### `app/api/generate-title/route.ts`
 
-The database loading script.
+Generates a short conversation title from the first user message using GPT. Called once per conversation after the first assistant response.
 
-It handles:
+---
 
-- Scraping anime websites
-- Cleaning text
-- Splitting text into chunks
-- Creating embeddings
-- Storing data in Astra DB
+### `app/api/suggestions/route.ts`
+
+Returns four dynamic anime-related prompt suggestions generated by GPT. Called on each new session to keep the home screen fresh.
+
+---
+
+### `lib/useConversations.ts`
+
+Custom React hook managing conversation persistence in `localStorage`. Handles create, read, update, delete, sort, and title-save operations with stale-closure-safe patterns.
+
+---
+
+### `app/components/Sidebar.tsx`
+
+Sidebar component listing all conversations. Supports selecting, deleting, and clearing conversations. Collapses behind a backdrop on mobile.
 
 ---
 
 ### `app/components/Bubble.tsx`
 
-Displays individual chat messages.
-
-It separates user messages from assistant messages using different styles.
-
----
-
-### `app/components/LoadingBubble.tsx`
-
-Shows a loading animation while the assistant is generating a response.
+Renders a single chat message. User bubbles support inline image previews. Assistant bubbles render markdown and include a hover-activated copy button.
 
 ---
 
 ### `app/components/PromptSuggestionsRow.tsx`
 
-Displays suggested prompts when the chat is empty.
+Displays the four dynamic prompt suggestion buttons on the home screen.
 
 ---
 
-### `app/components/PromptSuggestionButton.tsx`
+### `scripts/loadDb.ts`
 
-Reusable button component for each suggested prompt.
+Database seeding script. Scrapes anime websites, splits and embeds the content, and stores everything in Astra DB.
 
 ---
 
 ## Styling
 
-The app uses custom CSS in:
+All styles are in `app/global.css` using CSS custom properties for theming.
 
-```txt
-app/global.css
+```css
+[data-theme="dark"]  { --bg: #0d0f14; --surface: #1a1d24; ... }
+[data-theme="light"] { --bg: #f5f5f5; --surface: #ffffff; ... }
 ```
 
 The design includes:
 
-- Anime-inspired background
-- Custom AnimeGPT logo
-- Rounded chat container
-- User and assistant message bubbles
-- Prompt suggestion buttons
-- Loading animation
-- Clean centered layout
-- Soft colors for readability
+- Dark and light theme with instant toggle
+- Custom AnimeGPT logo in header and assistant avatar
+- Sidebar with conversation list and delete controls
+- Rounded chat bubbles with distinct user and assistant styles
+- Inline image display in user bubbles
+- Animated typing indicator with three bouncing dots
+- Auto-growing textarea input (capped at 140px)
+- Image preview bar with remove button
+- "Find your anime using images" feature card
+- Copy button on assistant messages (revealed on hover)
+- Mobile sidebar with full-screen backdrop overlay
+- Smooth fade and scale animations on new messages
 
 ---
 
@@ -454,10 +499,9 @@ The design includes:
 
 - This is a personal project created for learning and experimentation.
 - The chatbot is not an official anime database.
-- The logo and UI design were created specifically for this project.
-- The quality of answers depends on the quality of the scraped and stored data.
-- Some websites may block scraping or return limited content.
-- API-based anime data sources are usually more reliable than scraping normal web pages.
+- Images uploaded for identification are not stored or persisted — they exist only in the current session.
+- Conversation messages and titles are stored in `localStorage` only. Clearing browser data will remove all history.
+- The quality of RAG answers depends on the quality of the scraped and embedded data.
 - The app is designed to avoid spoilers unless the user clearly asks for them.
 
 ---
@@ -466,19 +510,30 @@ The design includes:
 
 ### Missing Environment Variables
 
-If the app throws an environment variable error, check that your `.env` file exists and contains all required values.
+If the app throws an environment variable error on startup, check that your `.env` file exists and contains all five required values.
 
 ---
 
 ### Chat Response Not Showing
 
-Check the following:
+- Verify the OpenAI API key is valid and has sufficient quota
+- Check the browser console for frontend errors
+- Check the terminal for backend errors from the API route
 
-- The API route exists at `app/api/chat/route.ts`
-- The OpenAI API key is valid
-- The browser console has no frontend errors
-- The terminal has no backend errors
-- The AI SDK version matches your code
+---
+
+### Image Identification Not Working
+
+- GPT-4o vision requires an OpenAI API key with access to the `gpt-4o` model
+- Accepted image formats: PNG, JPEG, WEBP, GIF
+- Very large images may be slow — the API uses `detail: high` for accuracy
+
+---
+
+### Conversations Not Saving
+
+- Conversation data is stored in `localStorage` under the key `animegpt-conversations`
+- If the sidebar is empty after a refresh, check that `localStorage` is not blocked by browser settings or an extension
 
 ---
 
@@ -486,64 +541,44 @@ Check the following:
 
 Verify:
 
-- Your Astra DB API endpoint
+- Your Astra DB API endpoint URL
 - Your application token
-- Your namespace
-- Your collection name
+- Your namespace and collection name
 
 ---
 
 ### Seed Script Not Working
 
-Make sure you are running the command from the project root:
+Run from the project root:
 
 ```bash
 npm run seed
 ```
 
-Also check that:
-
-- `scripts/loadDb.ts` exists
-- Puppeteer is installed
-- OpenAI API key is valid
-- Astra DB credentials are correct
-
----
-
-### Scraping Issues
-
-Some websites may block automated scraping.
-
-Possible fixes:
-
-- Use fewer websites
-- Use websites with simpler public pages
-- Add better error handling
-- Prefer official APIs where possible
+Make sure Puppeteer is installed, the OpenAI API key is valid, and all Astra DB credentials are correct.
 
 ---
 
 ### TypeScript Import Errors
 
-If imports like `useChat`, `OpenAIStream`, or `StreamingTextResponse` fail, check your AI SDK version.
+If imports like `useChat`, `OpenAIStream`, or `StreamingTextResponse` fail, check your `ai` package version in `package.json`. The project uses Vercel AI SDK v3-compatible imports.
 
-For older tutorial-style code, the project should use a compatible older version of the AI SDK.
-
-
+---
 
 ## Project Status
 
-AnimeGPT is currently a personal learning project focused on building a full-stack AI chatbot with RAG.
+AnimeGPT is a personal learning project focused on full-stack AI development with RAG and vision capabilities.
 
-The main goal of the project is to practice:
+The project covers:
 
-- AI application development
-- Retrieval-Augmented Generation
-- Vector databases
-- API routes in Next.js
-- Chat UI development
-- Data scraping and embedding workflows
-- UI design and project presentation
+- AI application development with OpenAI
+- Retrieval-Augmented Generation with vector databases
+- GPT-4o vision integration
+- Streaming API responses
+- Conversation persistence with localStorage
+- React state management with stale-closure-safe patterns
+- Dark/light theming with CSS custom properties
+- Responsive UI design for desktop and mobile
 
 ---
 
