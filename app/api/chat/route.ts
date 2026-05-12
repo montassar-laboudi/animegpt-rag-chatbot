@@ -126,19 +126,22 @@ My top pick for you would be **Jujutsu Kaisen** because it has the closest mix o
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { messages: rawMessages, imageBase64, mimeType } = body as {
+    const { messages: rawMessages, imageBase64, mimeType, hiddenPrompt } = body as {
       messages: ChatMessage[];
       imageBase64?: string;
       mimeType?: string;
+      hiddenPrompt?: string;
     };
     const messages: ChatMessage[] = rawMessages || [];
 
     // ── Vision mode: image uploaded ──────────────────────────────────────────
     if (imageBase64 && mimeType) {
       const lastMessage = messages[messages.length - 1];
+      // Priority: hidden structured prompt > user typed text > generic fallback
       const userText =
+        hiddenPrompt ||
         lastMessage?.content?.toString().trim() ||
-        'You are an anime expert. Identify this anime image. Tell me: the anime name, characters visible, arc or episode if recognizable, and a brief spoiler-free description. Be enthusiastic like an anime fan.';
+        'Identify this anime image. Tell me the anime name, visible characters, and a brief spoiler-free description.';
 
       const visionResponse = await openai.chat.completions.create({
         model: 'gpt-4o',

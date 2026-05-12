@@ -8,9 +8,10 @@ import logoSrc from '../assets/AG-Logo.png';
 
 interface BubbleProps {
   message: Message;
+  imagePreview?: string;
 }
 
-export default function Bubble({ message }: BubbleProps) {
+export default function Bubble({ message, imagePreview }: BubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -30,7 +31,12 @@ export default function Bubble({ message }: BubbleProps) {
       )}
       <div className={`bubble ${isUser ? 'user-bubble' : 'assistant-bubble'}`}>
         {isUser ? (
-          <p className="bubble-text">{message.content}</p>
+          <>
+            {imagePreview && (
+              <img src={imagePreview} alt="uploaded" className="bubble-image" />
+            )}
+            {message.content && <p className="bubble-text">{message.content}</p>}
+          </>
         ) : (
           <>
             <div className="markdown-content">

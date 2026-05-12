@@ -8,9 +8,37 @@ import PromptSuggestionsRow from './components/PromptSuggestionsRow';
 import Sidebar from './components/Sidebar';
 import { useConversations, readStorage } from '../lib/useConversations';
 import logoSrc from './assets/AG-Logo.png';
+import aotSrc from './assets/AOT.png';
 
 const SUGGESTIONS_CACHE_KEY = 'animegpt-suggestions';
 const SUGGESTIONS_TTL = 1000 * 60 * 60 * 24; // 24 h
+
+const ANIME_IDENTIFY_PROMPT = `
+You are AnimeGPT — an expert anime identifier with encyclopedic knowledge of every anime series, film, and OVA ever made.
+
+Carefully analyze every visual detail in this image and respond STRICTLY using the template below. Fill every section — if you are uncertain, make your best guess and note it inline.
+
+---
+🎌 **Anime:** [Full official title — both English and Japanese if known]
+
+👤 **Characters:** [List each visible character: Name · Role · Notable trait. If unidentified, describe appearance: hair color, outfit, weapon, etc.]
+
+📺 **Scene Context:** [Name the arc, saga, or episode type if recognizable. Otherwise describe what kind of scene this appears to be.]
+
+📖 **Synopsis:** [2–3 sentence spoiler-free description that captures the essence of the series]
+
+⭐ **Genres:** [Use tag format: Action · Dark Fantasy · Shounen · etc.]
+
+💡 **Why Watch:** [One enthusiastic, persuasive sentence — write it like a passionate anime fan]
+
+🔗 **You Might Also Like:** [3 recommendations in format: Anime Name — one-word reason]
+---
+
+Important rules:
+- NEVER leave a section blank. Use all visual clues (art style, costume, setting, color palette, character design) if the title is unclear.
+- Keep the tone enthusiastic and fan-like throughout.
+- If confidence is low on the title, note it with "(possibly)" but still commit to your best answer.
+`.trim();
 
 export default function Chat() {
   const {
@@ -35,6 +63,9 @@ export default function Chat() {
     mimeType: string;
     previewUrl: string;
   } | null>(null);
+  const pendingImagePreviewRef = useRef<string | null>(null);
+  const isFeatureModeRef = useRef(false);
+  const [messageImages, setMessageImages] = useState<Record<string, string>>({});
 
   // Keep refs in sync — onFinish is async and closes over stale values otherwise
   useEffect(() => { convIdRef.current = convId; }, [convId]);
@@ -75,7 +106,18 @@ export default function Chat() {
     },
   });
 
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => {
+    messagesRef.current = messages;
+    // When a new user message lands, attach the pending image preview to it
+    if (pendingImagePreviewRef.current && messages.length > 0) {
+      const last = messages[messages.length - 1];
+      if (last.role === 'user') {
+        const preview = pendingImagePreviewRef.current;
+        pendingImagePreviewRef.current = null;
+        setMessageImages(prev => ({ ...prev, [last.id]: preview }));
+      }
+    }
+  }, [messages]);
 
   // Load theme
   useEffect(() => {
@@ -186,10 +228,67 @@ export default function Chat() {
     setMessages([]);
   };
 
+  // Ensure a conversation exists before any append/submit — updates refs synchronously
+  const ensureConv = () => {
+    if (!convIdRef.current) {
+      const c = createConversation();
+      convIdRef.current = c.id;
+      setConvId(c.id);
+    }
+  };
+
+  // Auto-identify flow: friendly display text in chat, full structured prompt sent to API
+  const submitImageIdentify = (imageData: { base64: string; mimeType: string; previewUrl: string }) => {
+    ensureConv();
+    pendingImagePreviewRef.current = imageData.previewUrl;
+    append(
+      { role: 'user', content: '🔍 Identify this anime' },
+      {
+        body: {
+          imageBase64: imageData.base64,
+          mimeType: imageData.mimeType,
+          hiddenPrompt: ANIME_IDENTIFY_PROMPT,
+        },
+      }
+    );
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be under 10MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const imageData = {
+        base64: result.split(',')[1],
+        mimeType: file.type,
+        previewUrl: result,
+      };
+      if (isFeatureModeRef.current) {
+        // Feature card path: auto-submit immediately with hidden structured prompt
+        isFeatureModeRef.current = false;
+        submitImageIdentify(imageData);
+      } else {
+        // Normal attach path: show preview, let user add text or hit send
+        setPendingImage(imageData);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       alert('Image must be under 10MB');
       return;
@@ -204,7 +303,6 @@ export default function Chat() {
       });
     };
     reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -212,23 +310,25 @@ export default function Chat() {
     if (isLoading) return;
     if (!input.trim() && !pendingImage) return;
 
-    if (!convId) {
-      const c = createConversation();
-      convIdRef.current = c.id;
-      setConvId(c.id);
-    }
-
     if (pendingImage) {
-      handleSubmit(e, {
-        body: {
-          imageBase64: pendingImage.base64,
-          mimeType: pendingImage.mimeType,
-        },
-      });
+      const snap = pendingImage;
       setPendingImage(null);
+
+      if (!input.trim()) {
+        // Image only → structured identify (same as feature card flow)
+        submitImageIdentify(snap);
+      } else {
+        // Image + custom text → send user's question to GPT-4o
+        ensureConv();
+        pendingImagePreviewRef.current = snap.previewUrl;
+        handleSubmit(e, {
+          body: { imageBase64: snap.base64, mimeType: snap.mimeType },
+        });
+      }
       return;
     }
 
+    ensureConv();
     handleSubmit(e);
   };
 
@@ -293,11 +393,19 @@ export default function Chat() {
               <div className="empty-state-icon">✦</div>
               <h2>Welcome to AnimeGPT</h2>
               <p>Ask me anything about anime — recommendations, characters, watch orders, and more!</p>
+              <div className="find-anime-card" onClick={() => { isFeatureModeRef.current = true; fileInputRef.current?.click(); }}>
+                <Image src={aotSrc} alt="Find Anime" width={36} height={36} className="find-anime-icon" />
+                <div className="find-anime-text">
+                  <span className="find-anime-title">Find your anime using images</span>
+                  <span className="find-anime-desc">Upload or paste a screenshot — AnimeGPT will identify it</span>
+                </div>
+                <span className="find-anime-arrow">→</span>
+              </div>
             </div>
           ) : (
             <div className="messages-list">
               {messages.map((message, index) => (
-                <Bubble key={index} message={message} />
+                <Bubble key={index} message={message} imagePreview={messageImages[message.id]} />
               ))}
               {isLoading && messages[messages.length - 1]?.role === 'user' && (
                 <div className="bubble-wrapper assistant">
@@ -326,23 +434,63 @@ export default function Chat() {
 
         <footer className="input-footer">
           <div className="input-bar-wrapper">
+
+            {pendingImage && (
+              <div className="image-preview-bar">
+                <img src={pendingImage.previewUrl} alt="preview" className="image-thumb" />
+                <span className="image-hint">
+                  Send to identify this anime, or type a question first
+                </span>
+                <button
+                  type="button"
+                  className="image-remove"
+                  onClick={() => setPendingImage(null)}
+                >✕</button>
+              </div>
+            )}
+
             <form onSubmit={onSubmit} className="input-form">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleImageSelect}
+                style={{ display: 'none' }}
+              />
+
+              <button
+                type="button"
+                className="attach-btn"
+                onClick={() => { isFeatureModeRef.current = false; fileInputRef.current?.click(); }}
+                disabled={isLoading}
+                aria-label="Find your anime using images"
+                title="Find your anime using images"
+              >
+                <Image src={aotSrc} alt="Find anime" width={26} height={26} className="attach-icon" />
+              </button>
+
               <textarea
                 ref={inputRef}
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 onInput={e => autoResize(e.currentTarget)}
-                placeholder="Ask me about anime, characters, recommendations..."
+                onPaste={handlePaste}
+                placeholder={
+                  pendingImage
+                    ? 'Ask something about this image, or just hit send...'
+                    : 'Ask me about anime, characters, recommendations...'
+                }
                 className="input-field"
                 disabled={isLoading}
                 rows={1}
               />
+
               <button
                 type="submit"
                 className="send-button"
-                disabled={isLoading || !input.trim()}
-                aria-label="Send message"
+                disabled={isLoading || (!input.trim() && !pendingImage)}
+                aria-label="Send"
               >
                 {isLoading ? <span className="loader" /> : <span className="send-icon">→</span>}
               </button>

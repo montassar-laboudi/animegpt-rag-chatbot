@@ -930,4 +930,148 @@ body {
   }
 }
 
+/* ============================================
+   IMAGE UPLOAD
+   ============================================ */
 
+.attach-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.attach-btn:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--accent-light);
+  transform: scale(1.08);
+}
+
+.attach-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.attach-icon {
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.image-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  animation: fadeInScale 0.2s ease-out;
+}
+
+.image-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  flex-shrink: 0;
+}
+
+.image-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.image-remove {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.image-remove:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Image inside a user chat bubble */
+.bubble-image {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  width: auto;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  object-fit: contain;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* "Find your anime using images" feature card in empty state */
+.find-anime-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-top: 8px;
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: 420px;
+  width: 100%;
+  animation: slideUp 0.4s ease-out 0.1s both;
+}
+
+.find-anime-card:hover {
+  background: rgba(124, 58, 237, 0.2);
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.2);
+}
+
+.find-anime-icon {
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.find-anime-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  text-align: left;
+}
+
+.find-anime-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.find-anime-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.find-anime-arrow {
+  font-size: 16px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
