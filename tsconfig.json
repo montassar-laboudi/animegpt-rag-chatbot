@@ -41,7 +41,5 @@
       "module": "commonjs"
     }
   },
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["scripts", "node_modules"]
 }
