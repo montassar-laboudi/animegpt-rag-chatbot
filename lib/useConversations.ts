@@ -27,7 +27,7 @@ function writeStorage(list: Conversation[]): void {
   } catch {}
 }
 
-export function useConversations() {
+export function useConversations(_isLoggedIn?: boolean) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 

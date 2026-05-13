@@ -2,7 +2,7 @@
 
 AnimeGPT is a personal AI chatbot project built for anime fans. It lets users ask questions about anime, get recommendations, explore characters, understand storylines, check watch orders, and receive friendly anime-focused answers through a modern chat interface.
 
-The project was built to practice modern full-stack AI development using **Next.js**, **OpenAI**, **Astra DB**, **LangChain.js**, and a **Retrieval-Augmented Generation (RAG)** workflow — extended with GPT-4o vision support, conversation history, dark/light theming, and image-based anime identification.
+The project was built to practice modern full-stack AI development using **Next.js**, **OpenAI**, **Astra DB**, **LangChain.js**, and a **Retrieval-Augmented Generation (RAG)** workflow — extended with GPT-4o vision support, voice input via OpenAI Whisper, conversation history, dark/light theming, image-based anime identification, and Google OAuth authentication with a freemium access model.
 
 ---
 
@@ -74,7 +74,7 @@ Using the "Find your anime using images" feature card, the user selects an image
 
 The user pastes an image directly into the chat input using Ctrl+V. The image appears in the preview bar, ready to send.
 
-![AOT logo pasted via Ctrl+V](./test/screenshot-08-paste-image.png)
+![Image pasted via Ctrl+V](./test/screenshot-08-paste-image.png)
 
 ---
 
@@ -108,6 +108,8 @@ The app also supports **GPT-4o vision**: users can upload or paste an anime scre
 
 All conversations are saved locally in the browser and can be resumed or managed from the sidebar.
 
+Guest users get **5 free questions** before being prompted to sign in. Signing in with Google unlocks unlimited access and resets the counter.
+
 ---
 
 ## Features
@@ -128,6 +130,12 @@ All conversations are saved locally in the browser and can be resumed or managed
 - **Voice input via Den Den Mushi button** — records audio, transcribes via OpenAI Whisper, pastes text into the input *(new)*
 - Animated recording indicator: red glow + pulsing ring around the Den Den Mushi icon while recording *(new)*
 - Accent-colored spinner overlay on the icon during transcription processing *(new)*
+- **Freemium access model** — 5 free questions for guests, sign-in required after that *(new)*
+- Warning banner appears at 3 remaining questions to encourage sign-in *(new)*
+- **Google OAuth sign-in** via NextAuth v5 — one click, no password *(new)*
+- **User menu** in the header — avatar, display name, dropdown with Profile / Sign out / Delete account *(new)*
+- **Profile editing** — override Google display name and photo, stored in localStorage *(new)*
+- Two-step confirmation for account deletion *(new)*
 - Copy button on assistant messages
 - Auto-growing textarea input (up to 140px)
 - Mobile-friendly sidebar with backdrop overlay
@@ -138,16 +146,22 @@ All conversations are saved locally in the browser and can be resumed or managed
 
 ## Tech Stack
 
-- **Next.js** — Full-stack React framework (App Router)
-- **React** — UI components and client-side interactivity
-- **TypeScript** — Type-safe JavaScript development
-- **OpenAI** — Chat responses, text embeddings, GPT-4o vision, and Whisper speech-to-text
-- **Vercel AI SDK** — Streaming AI chat responses (`useChat`, `OpenAIStream`)
-- **Astra DB** — Vector database for storing and retrieving anime embeddings
-- **LangChain.js** — Text splitting and document processing
-- **Puppeteer** — Scraping anime-related website content
-- **ReactMarkdown** — Rendering markdown-formatted AI responses
-- **CSS custom properties** — Dark/light theming
+| Technology | Role |
+|---|---|
+| **Next.js 15** | Full-stack React framework (App Router) |
+| **React 19** | UI components and client-side interactivity |
+| **TypeScript** | Type-safe JavaScript throughout |
+| **OpenAI GPT-4o** | Vision-based anime image identification |
+| **OpenAI GPT-4o mini** | Text chat responses via RAG |
+| **OpenAI text-embedding-3-small** | Embedding generation for vector search |
+| **OpenAI Whisper** | Speech-to-text transcription for voice input |
+| **Vercel AI SDK v3** | Streaming AI chat responses (`useChat`, `OpenAIStream`) |
+| **NextAuth v5** | Google OAuth authentication with JWT sessions |
+| **Astra DB** | Vector database for storing and retrieving anime embeddings |
+| **LangChain.js** | Text splitting and document processing |
+| **Puppeteer** | Scraping anime-related website content |
+| **ReactMarkdown** | Rendering markdown-formatted AI responses |
+| **CSS custom properties** | Dark/light theming with `--accent-primary` purple palette |
 
 ---
 
@@ -157,36 +171,51 @@ All conversations are saved locally in the browser and can be resumed or managed
 nextjs-animegpt/
 ├── app/
 │   ├── api/
+│   │   ├── auth/
+│   │   │   └── [...nextauth]/
+│   │   │       └── route.ts           ← NextAuth v5 catch-all handler
 │   │   ├── chat/
-│   │   │   └── route.ts           ← Main chat API (RAG + GPT-4o vision)
+│   │   │   └── route.ts               ← Main chat API (RAG + GPT-4o vision)
 │   │   ├── generate-title/
-│   │   │   └── route.ts           ← Generates conversation titles
+│   │   │   └── route.ts               ← Generates conversation titles
 │   │   ├── suggestions/
-│   │   │   └── route.ts           ← Generates dynamic prompt suggestions
+│   │   │   └── route.ts               ← Generates dynamic prompt suggestions
 │   │   └── transcribe/
-│   │       └── route.ts           ← Voice transcription API (OpenAI Whisper)
+│   │       └── route.ts               ← Voice transcription API (OpenAI Whisper)
 │   │
 │   ├── assets/
-│   │   ├── AG-Logo.png            ← AnimeGPT logo (used in header + assistant bubble)
-│   │   ├── Animegpt-Logo.svg      ← SVG logo variant
-│   │   ├── AOT.png                ← Image upload button icon
-│   │   └── DenDenMochi.png        ← Voice input button icon (Den Den Mushi from One Piece)
+│   │   ├── AG-Logo.png                ← AnimeGPT logo (header + assistant bubble)
+│   │   ├── Animegpt-Logo.svg          ← SVG logo variant
+│   │   ├── Camera.png                 ← Image upload button icon
+│   │   └── DenDenMochi.png            ← Voice input button icon (Den Den Mushi from One Piece)
 │   │
 │   ├── components/
-│   │   ├── Bubble.tsx             ← Chat message bubble (user + assistant)
+│   │   ├── AuthSessionProvider.tsx    ← 'use client' wrapper for NextAuth SessionProvider
+│   │   ├── Bubble.tsx                 ← Chat message bubble (user + assistant)
+│   │   ├── LoadingBubble.tsx          ← Animated typing indicator
+│   │   ├── ProfileModal.tsx           ← Edit display name and photo *(new)*
 │   │   ├── PromptSuggestionButton.tsx
 │   │   ├── PromptSuggestionsRow.tsx
-│   │   └── Sidebar.tsx            ← Conversation sidebar
+│   │   ├── Sidebar.tsx                ← Conversation sidebar
+│   │   ├── SignInModal.tsx            ← Full-screen overlay shown when free limit is reached *(new)*
+│   │   ├── UsageBanner.tsx            ← Warning strip shown at 3 remaining questions *(new)*
+│   │   └── UserMenu.tsx              ← Header avatar + dropdown (Profile / Sign out / Delete) *(new)*
 │   │
-│   ├── global.css                 ← All styles with dark/light CSS variables
+│   ├── global.css                     ← All styles with dark/light CSS variables
+│   ├── icon.png                       ← Browser tab favicon (Den Den Mushi)
 │   ├── layout.tsx
-│   └── page.tsx                   ← Main chat page with all state and logic
+│   └── page.tsx                       ← Main chat page with all state and logic
 │
 ├── lib/
-│   └── useConversations.ts        ← Conversation persistence hook (localStorage)
+│   ├── useConversations.ts            ← Conversation persistence hook (localStorage)
+│   ├── useProfile.ts                  ← Display name / photo overrides hook (localStorage) *(new)*
+│   └── useUsageCounter.ts             ← Guest usage counter + freemium gate hook *(new)*
+│
+├── auth.ts                            ← NextAuth v5 config (Google provider) *(new)*
+├── middleware.ts                      ← NextAuth session middleware *(new)*
 │
 ├── scripts/
-│   └── loadDb.ts                  ← Scrape + embed + seed Astra DB
+│   └── loadDb.ts                      ← Scrape + embed + seed Astra DB
 │
 ├── test/
 │   ├── screenshot-01-home-dark.png
@@ -198,12 +227,14 @@ nextjs-animegpt/
 │   ├── screenshot-07-identify-response.png
 │   ├── screenshot-08-paste-image.png
 │   ├── screenshot-09-typing-bubble.png
-│   └── screenshot-10-transcribe_audio.png  ← Den Den Mushi recording (new feature)
+│   └── screenshot-10-transcribe_audio.png
 │
 ├── .env
 ├── .gitignore
+├── auth.ts
 ├── eslint.config.mjs
 ├── LICENSE
+├── middleware.ts
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package.json
@@ -293,6 +324,96 @@ Structured response streams into the chat bubble
 
 ---
 
+## Freemium Access Model *(New)*
+
+Guest users (not signed in) can send **5 free questions** before they are asked to sign in.
+
+### How it works
+
+- A counter is stored in `localStorage` under `animegpt-usage-count`
+- The counter increments on every message sent while logged out
+- At **3 remaining questions** a warning banner appears above the input bar prompting the user to sign in
+- When the limit is reached a full-screen sign-in modal blocks further input
+- Signing in with Google resets the counter and grants unlimited access
+- Signing out resets the gate — the guest counter starts from zero again
+
+### Why sign in?
+
+Google sign-in is frictionless (one click, no password) and allows the app to identify returning users. It is the only sign-in method supported.
+
+```txt
+Guest sends message
+        ↓
+Usage counter increments in localStorage
+        ↓
+count >= 3 → warning banner appears
+        ↓
+count >= 5 → sign-in modal appears, input is blocked
+        ↓
+User clicks "Continue with Google"
+        ↓
+NextAuth completes Google OAuth flow
+        ↓
+Counter is reset, unlimited access granted
+```
+
+---
+
+## Authentication *(New)*
+
+Authentication is handled by **NextAuth v5** with the Google provider.
+
+### Setup
+
+1. Create a project at [console.cloud.google.com](https://console.cloud.google.com)
+2. Enable the Google OAuth API and create credentials
+3. Set the authorised redirect URI to:
+   ```
+   http://localhost:3000/api/auth/callback/google
+   ```
+4. Add your credentials to `.env`:
+   ```env
+   AUTH_GOOGLE_ID=your_google_client_id
+   AUTH_GOOGLE_SECRET=your_google_client_secret
+   AUTH_SECRET=your_random_secret_string
+   ```
+
+### Files
+
+| File | Role |
+|---|---|
+| `auth.ts` | NextAuth v5 configuration — Google provider, JWT sessions |
+| `middleware.ts` | Session middleware applied to all routes |
+| `app/api/auth/[...nextauth]/route.ts` | Catch-all route exporting NextAuth GET/POST handlers |
+| `app/components/AuthSessionProvider.tsx` | `'use client'` wrapper so `SessionProvider` can live in a Server Component layout |
+
+---
+
+## User Menu & Profile *(New)*
+
+When signed in, the header shows the user's avatar, first name, and a dropdown menu.
+
+### Dropdown options
+
+| Option | Action |
+|---|---|
+| **Profile** | Opens the profile editor modal |
+| **Sign out** | Signs out and redirects to home |
+| **Delete account** | Two-step confirmation → clears localStorage and signs out |
+
+### Profile editor
+
+Clicking **Profile** opens a modal where the user can:
+
+- **Edit display name** — the Google account name is the default; any change is stored in `localStorage`
+- **Change profile photo** — click the avatar to open a file picker; the chosen image is resized to 256×256 JPEG using the Canvas API before being stored as a base64 string in `localStorage`
+
+Overrides are applied everywhere the name or photo appears (header trigger, dropdown card) without touching the underlying Google session.
+
+Profile overrides are stored under `animegpt-profile` in `localStorage` and persist across sessions until the user deletes their account.
+
+---
+
 ## Image Identification Feature
 
 The "Find your anime using images" feature card lets users identify any anime from a screenshot.
@@ -333,6 +454,8 @@ The **Den Den Mushi** (デン デン ムシ, literally "electric snail") is the 
 6. The icon dims with a spinner while your audio is sent to OpenAI Whisper
 7. The transcribed text is pasted into the input field — review it, edit if needed, and send
 
+Whisper automatically detects the spoken language and transcribes in the original language — no forced English translation.
+
 ### How it works
 
 ```txt
@@ -344,7 +467,7 @@ User clicks again to stop — audio blob is assembled
         ↓
 Audio is POSTed to /api/transcribe as multipart/form-data
         ↓
-OpenAI Whisper (whisper-1) transcribes the audio to text
+OpenAI Whisper (whisper-1) transcribes in the detected language
         ↓
 Transcribed text is appended to the textarea content
         ↓
@@ -401,6 +524,10 @@ What should I watch after Demon Slayer?
 [upload a screenshot] → AnimeGPT identifies the anime and characters
 ```
 
+```txt
+[click Den Den Mushi, speak] → AnimeGPT transcribes and fills the input
+```
+
 ---
 
 ## Environment Variables
@@ -413,6 +540,9 @@ ASTRA_DB_COLLECTION=your_collection_name
 ASTRA_DB_API_ENDPOINT=your_astra_api_endpoint
 ASTRA_DB_APPLICATION_TOKEN=your_astra_application_token
 OPENAI_API_KEY=your_openai_api_key
+AUTH_GOOGLE_ID=your_google_client_id
+AUTH_GOOGLE_SECRET=your_google_client_secret
+AUTH_SECRET=your_random_secret_string
 ```
 
 | Variable | Description |
@@ -421,7 +551,35 @@ OPENAI_API_KEY=your_openai_api_key
 | `ASTRA_DB_COLLECTION` | Collection used to store anime vectors |
 | `ASTRA_DB_API_ENDPOINT` | Astra DB API endpoint URL |
 | `ASTRA_DB_APPLICATION_TOKEN` | Astra DB authentication token |
-| `OPENAI_API_KEY` | OpenAI API key (used for embeddings, chat, and vision) |
+| `OPENAI_API_KEY` | OpenAI API key (chat, vision, embeddings, Whisper) |
+| `AUTH_GOOGLE_ID` | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
+| `AUTH_SECRET` | Random secret used by NextAuth to sign session tokens |
+
+---
+
+## Git — Commit & Push
+
+Stage all changes, commit, and push to `main` in three commands:
+
+```bash
+git add .
+git commit -m "your message here"
+git push origin main
+```
+
+Or as a single one-liner:
+
+```bash
+git add . && git commit -m "your message here" && git push origin main
+```
+
+If your local branch is behind the remote, pull with rebase first:
+
+```bash
+git pull --rebase origin main
+git push origin main
+```
 
 ---
 
@@ -483,7 +641,7 @@ This runs `scripts/loadDb.ts`, which:
 
 ### `app/page.tsx`
 
-The main chatbot page. Handles all chat state, conversation switching, image upload logic, theme toggling, sidebar open/close, and message rendering.
+The main chatbot page. Handles all chat state, conversation switching, image upload, voice recording, theme toggling, sidebar open/close, freemium gate, and message rendering.
 
 ---
 
@@ -507,13 +665,67 @@ Returns four dynamic anime-related prompt suggestions generated by GPT. Called o
 
 ### `app/api/transcribe/route.ts` *(New)*
 
-The voice transcription API route. Receives a recorded audio file (WebM) uploaded from the browser as multipart/form-data, forwards it to OpenAI Whisper (`whisper-1`), and returns the transcribed text as JSON. The result is pasted into the user's input field client-side.
+The voice transcription API route. Receives a recorded audio file (WebM) uploaded from the browser as multipart/form-data, forwards it to OpenAI Whisper (`whisper-1`) with `verbose_json` response format, and returns the transcribed text as JSON. Using `verbose_json` ensures Whisper outputs in the detected language rather than silently translating to English.
+
+---
+
+### `auth.ts` *(New)*
+
+NextAuth v5 configuration. Exports `handlers`, `signIn`, `signOut`, and `auth`. Configures the Google provider using `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`.
+
+---
+
+### `middleware.ts` *(New)*
+
+NextAuth session middleware applied to all routes (excluding static assets). Ensures the session cookie is refreshed on every request.
 
 ---
 
 ### `lib/useConversations.ts`
 
 Custom React hook managing conversation persistence in `localStorage`. Handles create, read, update, delete, sort, and title-save operations with stale-closure-safe patterns.
+
+---
+
+### `lib/useUsageCounter.ts` *(New)*
+
+Custom React hook tracking guest usage. Reads and writes to `localStorage` under `animegpt-usage-count`. Exposes `isAtLimit` (blocks input at 5) and `showWarning` (triggers banner at 3 remaining). Resets automatically when the user signs in.
+
+---
+
+### `lib/useProfile.ts` *(New)*
+
+Custom React hook for storing display name and photo overrides in `localStorage` under `animegpt-profile`. Returns `displayName` and `displayImage` that fall back to the Google session values when no override is set.
+
+---
+
+### `app/components/AuthSessionProvider.tsx` *(New)*
+
+A `'use client'` wrapper component that renders NextAuth's `SessionProvider`. Required because `app/layout.tsx` is a Server Component and `SessionProvider` is a client-only component.
+
+---
+
+### `app/components/SignInModal.tsx` *(New)*
+
+Full-screen overlay shown when the guest free limit (5 questions) is reached. Displays a "Continue with Google" button that triggers the NextAuth sign-in flow.
+
+---
+
+### `app/components/UsageBanner.tsx` *(New)*
+
+A warning strip rendered above the input bar when a guest user has 3 or fewer questions remaining. Shows the remaining count and an inline sign-in button.
+
+---
+
+### `app/components/UserMenu.tsx` *(New)*
+
+Header component for signed-in users. Shows the user's avatar (Google or custom), first name, and an animated chevron. Clicking opens a dropdown with Profile, Sign out, and Delete account options. Outside-click dismisses the dropdown.
+
+---
+
+### `app/components/ProfileModal.tsx` *(New)*
+
+Modal for editing the user's display name and profile photo. The Google account values are pre-filled as defaults. Photo uploads are resized to 256×256 JPEG using the Canvas API before being stored as base64 in `localStorage`.
 
 ---
 
@@ -546,8 +758,8 @@ Database seeding script. Scrapes anime websites, splits and embeds the content, 
 All styles are in `app/global.css` using CSS custom properties for theming.
 
 ```css
-[data-theme="dark"]  { --bg: #0d0f14; --surface: #1a1d24; ... }
-[data-theme="light"] { --bg: #f5f5f5; --surface: #ffffff; ... }
+[data-theme="dark"]  { --accent-primary: #7c3aed; --bg-primary: #0d0d14; ... }
+[data-theme="light"] { --accent-primary: #6d28d9; --bg-primary: #ffffff; ... }
 ```
 
 The design includes:
@@ -565,6 +777,10 @@ The design includes:
 - Mobile sidebar with full-screen backdrop overlay
 - Smooth fade and scale animations on new messages
 - Den Den Mushi voice button with three animated states: red glow ring (recording), greyscale + spinner (transcribing)
+- User menu dropdown with avatar, name, chevron, and animated open/close
+- Profile editor modal with canvas-resized photo upload
+- Sign-in modal overlay with blur backdrop
+- Usage warning banner with inline sign-in CTA
 
 ---
 
@@ -576,6 +792,7 @@ The design includes:
 - Conversation messages and titles are stored in `localStorage` only. Clearing browser data will remove all history.
 - The quality of RAG answers depends on the quality of the scraped and embedded data.
 - The app is designed to avoid spoilers unless the user clearly asks for them.
+- Guest usage count, conversation history, and profile overrides are all stored in `localStorage` — signing out does not clear them unless the user deletes their account.
 
 ---
 
@@ -583,7 +800,7 @@ The design includes:
 
 ### Missing Environment Variables
 
-If the app throws an environment variable error on startup, check that your `.env` file exists and contains all five required values.
+If the app throws an environment variable error on startup, check that your `.env` file exists and contains all required values including the three `AUTH_*` variables for NextAuth.
 
 ---
 
@@ -595,11 +812,28 @@ If the app throws an environment variable error on startup, check that your `.en
 
 ---
 
+### Google Sign-In Not Working
+
+- Ensure `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `AUTH_SECRET` are set in `.env`
+- Verify the redirect URI in your Google Cloud Console matches `http://localhost:3000/api/auth/callback/google` (development) or your production domain
+- Check the terminal for NextAuth errors
+
+---
+
 ### Image Identification Not Working
 
 - GPT-4o vision requires an OpenAI API key with access to the `gpt-4o` model
 - Accepted image formats: PNG, JPEG, WEBP, GIF
 - Very large images may be slow — the API uses `detail: high` for accuracy
+
+---
+
+### Voice Input Not Transcribing
+
+- The browser will prompt for microphone permission on first use — make sure it is allowed
+- Check the terminal for errors from `/api/transcribe`
+- Ensure `OPENAI_API_KEY` has access to the `whisper-1` model
+- If the transcription is in the wrong language, verify the `verbose_json` response format is used in `app/api/transcribe/route.ts`
 
 ---
 
@@ -640,15 +874,18 @@ If imports like `useChat`, `OpenAIStream`, or `StreamingTextResponse` fail, chec
 
 ## Project Status
 
-AnimeGPT is a personal learning project focused on full-stack AI development with RAG and vision capabilities.
+AnimeGPT is a personal learning project focused on full-stack AI development with RAG, vision, voice, and authentication.
 
 The project covers:
 
-- AI application development with OpenAI
+- AI application development with OpenAI (chat, vision, embeddings, speech-to-text)
 - Retrieval-Augmented Generation with vector databases
 - GPT-4o vision integration
 - OpenAI Whisper speech-to-text integration
 - Streaming API responses
+- Google OAuth authentication with NextAuth v5
+- Freemium access model with client-side usage gating
+- User profile management with localStorage overrides
 - Conversation persistence with localStorage
 - React state management with stale-closure-safe patterns
 - Dark/light theming with CSS custom properties

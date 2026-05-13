@@ -3,10 +3,15 @@
 import { useChat } from 'ai/react';
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import Bubble from './components/Bubble';
 import PromptSuggestionsRow from './components/PromptSuggestionsRow';
 import Sidebar from './components/Sidebar';
+import SignInModal from './components/SignInModal';
+import UsageBanner from './components/UsageBanner';
+import UserMenu from './components/UserMenu';
 import { useConversations, readStorage } from '../lib/useConversations';
+import { useUsageCounter } from '../lib/useUsageCounter';
 import logoSrc from './assets/AG-Logo.png';
 import aotSrc from './assets/Camera.png';
 import denDenMochiSrc from './assets/DenDenMochi.png';
@@ -42,11 +47,14 @@ Important rules:
 `.trim();
 
 export default function Chat() {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
+
   const {
     conversations, activeId, setActiveId,
     createConversation, saveMessages, saveTitle,
     deleteConversation, clearAll,
-  } = useConversations();
+  } = useConversations(isLoggedIn);
 
   const [convId, setConvId] = useState<string | null>(null);
   const convIdRef = useRef<string | null>(null);
@@ -71,6 +79,8 @@ export default function Chat() {
   const pendingImagePreviewRef = useRef<string | null>(null);
   const isFeatureModeRef = useRef(false);
   const [messageImages, setMessageImages] = useState<Record<string, string>>({});
+
+  const { count, increment, reset, isAtLimit, showWarning, remaining } = useUsageCounter(isLoggedIn);
 
   // Keep refs in sync — onFinish is async and closes over stale values otherwise
   useEffect(() => { convIdRef.current = convId; }, [convId]);
@@ -369,6 +379,9 @@ export default function Chat() {
     e.preventDefault();
     if (isLoading) return;
     if (!input.trim() && !pendingImage) return;
+    if (isAtLimit) return;
+
+    if (!isLoggedIn) increment();
 
     if (pendingImage) {
       const snap = pendingImage;
@@ -413,6 +426,16 @@ export default function Chat() {
     }
   }, [input]);
 
+  // Reset usage counter and persist messages when user signs in
+  useEffect(() => {
+    if (isLoggedIn && count > 0) {
+      reset();
+      if (messages.length > 0 && convId) {
+        saveMessages(convId, messages);
+      }
+    }
+  }, [isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="app-shell">
       {sidebarOpen && (
@@ -442,9 +465,32 @@ export default function Chat() {
             <div className="logo">✦</div>
             <h1 className="logo-text">AnimeGPT</h1>
           </div>
-          <button onClick={toggleTheme} className="theme-toggle" aria-label="Toggle theme">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button onClick={toggleTheme} className="theme-toggle" aria-label="Toggle theme">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            {session ? (
+              <UserMenu
+                name={session.user?.name}
+                email={session.user?.email}
+                image={session.user?.image}
+              />
+            ) : (
+              <button
+                className="signin-header-btn"
+                onClick={() => signIn('google')}
+                aria-label="Sign in"
+              >
+                <svg width="16" height="16" viewBox="0 0 48 48" style={{ marginRight: '6px' }}>
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Sign in
+              </button>
+            )}
+          </div>
         </header>
 
         <div className="messages-container">
@@ -494,6 +540,8 @@ export default function Chat() {
 
         <footer className="input-footer">
           <div className="input-bar-wrapper">
+
+            {showWarning && <UsageBanner remaining={remaining} />}
 
             {pendingImage && (
               <div className="image-preview-bar">
@@ -569,7 +617,7 @@ export default function Chat() {
               <button
                 type="submit"
                 className="send-button"
-                disabled={isLoading || (!input.trim() && !pendingImage)}
+                disabled={isLoading || (!input.trim() && !pendingImage) || isAtLimit}
                 aria-label="Send"
               >
                 {isLoading ? <span className="loader" /> : <span className="send-icon">→</span>}
@@ -578,6 +626,8 @@ export default function Chat() {
           </div>
         </footer>
       </div>
+
+      {isAtLimit && <SignInModal />}
     </div>
   );
 }
