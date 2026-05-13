@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -14,10 +14,13 @@ export async function POST(req: NextRequest) {
 
     const openai = new OpenAI();
 
+    const buffer = Buffer.from(await audio.arrayBuffer());
+    const file = await toFile(buffer, 'recording.webm', { type: 'audio/webm' });
+
     const transcription = await openai.audio.transcriptions.create({
-      file: audio,
+      file,
       model: 'whisper-1',
-      language: 'en',
+      response_format: 'verbose_json',
     });
 
     return Response.json({ text: transcription.text });
