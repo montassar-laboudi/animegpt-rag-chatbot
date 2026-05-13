@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'AnimeGPT — Your Anime Expert',
   description: 'Chat with an AI anime expert for recommendations, character info, watch orders, and story summaries.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icon.png',
   },
 };
 
