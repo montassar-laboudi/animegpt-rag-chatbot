@@ -8,7 +8,7 @@ import PromptSuggestionsRow from './components/PromptSuggestionsRow';
 import Sidebar from './components/Sidebar';
 import { useConversations, readStorage } from '../lib/useConversations';
 import logoSrc from './assets/AG-Logo.png';
-import aotSrc from './assets/AOT.png';
+import aotSrc from './assets/Camera.png';
 import denDenMochiSrc from './assets/DenDenMochi.png';
 
 const SUGGESTIONS_CACHE_KEY = 'animegpt-suggestions';
