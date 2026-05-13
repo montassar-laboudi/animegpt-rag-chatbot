@@ -1075,3 +1075,91 @@ body {
   flex-shrink: 0;
   opacity: 0.7;
 }
+
+/* ============================================
+   MICROPHONE / VOICE INPUT
+   ============================================ */
+
+.mic-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.mic-btn-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-icon {
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.mic-btn:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--accent-light);
+  transform: scale(1.08);
+}
+
+.mic-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Recording state: red drop-shadow pulse + animated ring ── */
+.mic-btn.recording {
+  opacity: 1;
+}
+
+.mic-btn.recording .mic-icon {
+  animation: micPulse 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 7px rgba(239, 68, 68, 0.9));
+}
+
+.mic-btn.recording::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 10px;
+  border: 2px solid #ef4444;
+  animation: recordingRing 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes micPulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(0.90); }
+}
+
+@keyframes recordingRing {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: 0.3; transform: scale(1.10); }
+}
+
+/* ── Transcribing state: dimmed + accent spinner overlay ── */
+.mic-btn.transcribing .mic-icon {
+  opacity: 0.45;
+  filter: grayscale(60%);
+}
+
+.mic-loader {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-border);
+  border-top-color: var(--accent-primary);
+  animation: spin 0.75s linear infinite;
+}

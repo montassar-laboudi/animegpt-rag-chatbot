@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar';
 import { useConversations, readStorage } from '../lib/useConversations';
 import logoSrc from './assets/AG-Logo.png';
 import aotSrc from './assets/AOT.png';
+import denDenMochiSrc from './assets/DenDenMochi.png';
 
 const SUGGESTIONS_CACHE_KEY = 'animegpt-suggestions';
 const SUGGESTIONS_TTL = 1000 * 60 * 60 * 24; // 24 h
@@ -58,6 +59,10 @@ export default function Chat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<ReturnType<typeof useChat>['messages']>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const [pendingImage, setPendingImage] = useState<{
     base64: string;
     mimeType: string;
@@ -226,6 +231,61 @@ export default function Chat() {
     clearAll();
     setConvId(null);
     setMessages([]);
+  };
+
+  const handleMicClick = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: 'audio/webm',
+        });
+
+        setIsTranscribing(true);
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+
+          const res = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (data.text) {
+            const syntheticEvent = {
+              target: { value: input + (input ? ' ' : '') + data.text },
+            } as React.ChangeEvent<HTMLTextAreaElement>;
+            handleInputChange(syntheticEvent);
+          }
+        } catch (err) {
+          console.error('Transcription failed:', err);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      alert('Microphone access denied. Please allow microphone access and try again.');
+    }
   };
 
   // Ensure a conversation exists before any append/submit — updates refs synchronously
@@ -467,6 +527,26 @@ export default function Chat() {
                 title="Find your anime using images"
               >
                 <Image src={aotSrc} alt="Find anime" width={26} height={26} className="attach-icon" />
+              </button>
+
+              <button
+                type="button"
+                className={`mic-btn${isRecording ? ' recording' : ''}${isTranscribing ? ' transcribing' : ''}`}
+                onClick={handleMicClick}
+                disabled={isLoading || isTranscribing}
+                aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+                title={isRecording ? 'Stop recording' : 'Speak your question'}
+              >
+                <div className="mic-btn-inner">
+                  <Image
+                    src={denDenMochiSrc}
+                    alt="Voice input"
+                    width={26}
+                    height={26}
+                    className="mic-icon"
+                  />
+                  {isTranscribing && <span className="mic-loader" />}
+                </div>
               </button>
 
               <textarea

@@ -86,6 +86,18 @@ While AnimeGPT is generating a response, an animated typing bubble with three bo
 
 ---
 
+### Voice Input — Den Den Mushi *(New Feature)*
+
+> **This feature was added after the original screenshots were taken and is not visible in any of the earlier demo images.**
+
+The Den Den Mushi button sits between the image upload button and the text input. One click starts recording your voice. A red glowing ring pulses around the snail while it is listening. Click again to stop — AnimeGPT transcribes the audio using OpenAI Whisper and pastes the result directly into the input field. You can review, edit, and send the text as usual.
+
+The **Den Den Mushi** (デン デン ムシ) is the iconic snail-shaped communication device from *One Piece* — used throughout the series as a telephone and video phone by pirates, marines, and everyone in between. It was chosen as the button icon here as a deliberate anime reference: a creature literally made for transmitting voice, used as the gateway for voice input in an anime chatbot.
+
+![Den Den Mushi recording with red ring animation](./test/screenshot-10-transcribe_audio.png)
+
+---
+
 ## Overview
 
 AnimeGPT is more than a basic chatbot. It uses a **Retrieval-Augmented Generation (RAG)** system to improve answer quality with anime-related data stored in a vector database.
@@ -113,6 +125,9 @@ All conversations are saved locally in the browser and can be resumed or managed
 - "Find your anime using images" feature — auto-identifies anime from screenshots
 - Structured 7-section identification response (anime, characters, scene, synopsis, genres, why watch, similar picks)
 - Images displayed inline in chat bubbles
+- **Voice input via Den Den Mushi button** — records audio, transcribes via OpenAI Whisper, pastes text into the input *(new)*
+- Animated recording indicator: red glow + pulsing ring around the Den Den Mushi icon while recording *(new)*
+- Accent-colored spinner overlay on the icon during transcription processing *(new)*
 - Copy button on assistant messages
 - Auto-growing textarea input (up to 140px)
 - Mobile-friendly sidebar with backdrop overlay
@@ -126,7 +141,7 @@ All conversations are saved locally in the browser and can be resumed or managed
 - **Next.js** — Full-stack React framework (App Router)
 - **React** — UI components and client-side interactivity
 - **TypeScript** — Type-safe JavaScript development
-- **OpenAI** — Chat responses, text embeddings, and GPT-4o vision
+- **OpenAI** — Chat responses, text embeddings, GPT-4o vision, and Whisper speech-to-text
 - **Vercel AI SDK** — Streaming AI chat responses (`useChat`, `OpenAIStream`)
 - **Astra DB** — Vector database for storing and retrieving anime embeddings
 - **LangChain.js** — Text splitting and document processing
@@ -146,13 +161,16 @@ nextjs-animegpt/
 │   │   │   └── route.ts           ← Main chat API (RAG + GPT-4o vision)
 │   │   ├── generate-title/
 │   │   │   └── route.ts           ← Generates conversation titles
-│   │   └── suggestions/
-│   │       └── route.ts           ← Generates dynamic prompt suggestions
+│   │   ├── suggestions/
+│   │   │   └── route.ts           ← Generates dynamic prompt suggestions
+│   │   └── transcribe/
+│   │       └── route.ts           ← Voice transcription API (OpenAI Whisper)
 │   │
 │   ├── assets/
 │   │   ├── AG-Logo.png            ← AnimeGPT logo (used in header + assistant bubble)
 │   │   ├── Animegpt-Logo.svg      ← SVG logo variant
-│   │   └── AOT.png                ← Image upload button icon
+│   │   ├── AOT.png                ← Image upload button icon
+│   │   └── DenDenMochi.png        ← Voice input button icon (Den Den Mushi from One Piece)
 │   │
 │   ├── components/
 │   │   ├── Bubble.tsx             ← Chat message bubble (user + assistant)
@@ -179,7 +197,8 @@ nextjs-animegpt/
 │   ├── screenshot-06-image-preview-bar.png
 │   ├── screenshot-07-identify-response.png
 │   ├── screenshot-08-paste-image.png
-│   └── screenshot-09-typing-bubble.png
+│   ├── screenshot-09-typing-bubble.png
+│   └── screenshot-10-transcribe_audio.png  ← Den Den Mushi recording (new feature)
 │
 ├── .env
 ├── .gitignore
@@ -293,6 +312,53 @@ The "Find your anime using images" feature card lets users identify any anime fr
    - Similar anime you might like
 
 The prompt shown in the chat is a friendly `🔍 Identify this anime` display text. The actual detailed identification prompt is sent silently to the API without being shown to the user.
+
+---
+
+## Voice Input Feature — Den Den Mushi *(New)*
+
+The Den Den Mushi button enables hands-free voice input powered by OpenAI Whisper.
+
+### About the Den Den Mushi
+
+The **Den Den Mushi** (デン デン ムシ, literally "electric snail") is the telephone of the *One Piece* universe. These snails can transmit voice and video and are used by everyone from pirates to the World Government. Choosing the Den Den Mushi as the voice input icon is an anime-native reference: the creature is literally built to carry your voice.
+
+### How to use it
+
+1. Click the Den Den Mushi icon in the input bar (between the image button and the text field)
+2. The browser asks for microphone permission on first use — allow it
+3. The icon's red glowing ring starts pulsing to show recording is active
+4. Speak your question or message
+5. Click the icon again to stop recording
+6. The icon dims with a spinner while your audio is sent to OpenAI Whisper
+7. The transcribed text is pasted into the input field — review it, edit if needed, and send
+
+### How it works
+
+```txt
+User clicks Den Den Mushi button
+        ↓
+Browser MediaRecorder captures microphone audio (WebM format)
+        ↓
+User clicks again to stop — audio blob is assembled
+        ↓
+Audio is POSTed to /api/transcribe as multipart/form-data
+        ↓
+OpenAI Whisper (whisper-1) transcribes the audio to text
+        ↓
+Transcribed text is appended to the textarea content
+        ↓
+User reviews, edits if needed, and sends normally
+```
+
+### Visual states
+
+| State | What you see |
+|-------|-------------|
+| Idle | Den Den Mushi at normal opacity |
+| Hover | Slight scale-up with accent background |
+| Recording | Red drop-shadow glow + pulsing red ring border |
+| Transcribing | Dimmed/greyscale icon + accent-purple spinner ring |
 
 ---
 
@@ -439,6 +505,12 @@ Returns four dynamic anime-related prompt suggestions generated by GPT. Called o
 
 ---
 
+### `app/api/transcribe/route.ts` *(New)*
+
+The voice transcription API route. Receives a recorded audio file (WebM) uploaded from the browser as multipart/form-data, forwards it to OpenAI Whisper (`whisper-1`), and returns the transcribed text as JSON. The result is pasted into the user's input field client-side.
+
+---
+
 ### `lib/useConversations.ts`
 
 Custom React hook managing conversation persistence in `localStorage`. Handles create, read, update, delete, sort, and title-save operations with stale-closure-safe patterns.
@@ -492,6 +564,7 @@ The design includes:
 - Copy button on assistant messages (revealed on hover)
 - Mobile sidebar with full-screen backdrop overlay
 - Smooth fade and scale animations on new messages
+- Den Den Mushi voice button with three animated states: red glow ring (recording), greyscale + spinner (transcribing)
 
 ---
 
@@ -574,6 +647,7 @@ The project covers:
 - AI application development with OpenAI
 - Retrieval-Augmented Generation with vector databases
 - GPT-4o vision integration
+- OpenAI Whisper speech-to-text integration
 - Streaming API responses
 - Conversation persistence with localStorage
 - React state management with stale-closure-safe patterns
