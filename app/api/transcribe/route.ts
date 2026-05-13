@@ -15,10 +15,11 @@ export async function POST(req: NextRequest) {
     const openai = new OpenAI();
 
     const buffer = Buffer.from(await audio.arrayBuffer());
-    const file = await toFile(buffer, 'recording.webm', { type: 'audio/webm' });
 
+    // Single call — verbose_json makes Whisper output text in the detected language
+    // rather than implicitly translating to English, so no second call is needed.
     const transcription = await openai.audio.transcriptions.create({
-      file,
+      file: await toFile(buffer, 'recording.webm', { type: 'audio/webm' }),
       model: 'whisper-1',
       response_format: 'verbose_json',
     });
