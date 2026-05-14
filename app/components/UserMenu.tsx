@@ -8,9 +8,10 @@ interface Props {
   name: string | null | undefined;
   email: string | null | undefined;
   image: string | null | undefined;
+  onSignOut?: () => void;
 }
 
-export default function UserMenu({ name, email, image }: Props) {
+export default function UserMenu({ name, email, image, onSignOut }: Props) {
   const [open, setOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -99,7 +100,7 @@ export default function UserMenu({ name, email, image }: Props) {
 
             <button
               className="user-dropdown-item"
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={() => { setOpen(false); onSignOut ? onSignOut() : signOut({ callbackUrl: '/' }); }}
             >
               <span className="user-dropdown-item-icon">↩</span>
               Sign out

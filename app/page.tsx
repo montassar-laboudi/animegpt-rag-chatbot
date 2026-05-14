@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from 'ai/react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Bubble from './components/Bubble';
@@ -10,7 +10,7 @@ import Sidebar from './components/Sidebar';
 import SignInModal from './components/SignInModal';
 import UsageBanner from './components/UsageBanner';
 import UserMenu from './components/UserMenu';
-import { useConversations, readStorage } from '../lib/useConversations';
+import { useConversations, Conversation } from '../lib/useConversations';
 import { useUsageCounter } from '../lib/useUsageCounter';
 import logoSrc from './assets/AG-Logo.png';
 import aotSrc from './assets/Camera.png';
@@ -52,12 +52,15 @@ export default function Chat() {
 
   const {
     conversations, activeId, setActiveId,
-    createConversation, saveMessages, saveTitle,
-    deleteConversation, clearAll,
+    loading, createConversation, saveMessages, saveTitle,
+    deleteConversation, clearAll, migrateLocalToCloud,
   } = useConversations(isLoggedIn);
 
   const [convId, setConvId] = useState<string | null>(null);
   const convIdRef = useRef<string | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
+  const prevLoggedInRef = useRef(false);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const titleDoneRef = useRef<Set<string>>(new Set());
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -82,7 +85,10 @@ export default function Chat() {
 
   const { count, increment, reset, isAtLimit, showWarning, remaining } = useUsageCounter(isLoggedIn);
 
-  // Keep refs in sync — onFinish is async and closes over stale values otherwise
+  // Keep conversationsRef in sync for onFinish (avoids stale closure)
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+
+  // Keep convIdRef in sync
   useEffect(() => { convIdRef.current = convId; }, [convId]);
 
   const { messages, setMessages, input, handleInputChange,
@@ -91,17 +97,14 @@ export default function Chat() {
       const currentId = convIdRef.current;
       if (!currentId) return;
 
-      // messagesRef.current may or may not include the final assistant message
-      // depending on whether the state-sync effect ran before this callback.
-      // Dedup by id to handle both timing cases without doubling.
       const current = messagesRef.current;
       const all = current.some(m => m.id === message.id)
         ? current
         : [...current, message];
-      saveMessages(currentId, all);
+      await saveMessages(currentId, all);
 
-      // Only generate title if conversation still has the default "New Chat" title
-      const stored = readStorage().find(c => c.id === currentId);
+      // Generate title only once per conversation
+      const stored = conversationsRef.current.find(c => c.id === currentId);
       const needsTitle = !stored || stored.title === 'New Chat';
       if (needsTitle && !titleDoneRef.current.has(currentId)) {
         titleDoneRef.current.add(currentId);
@@ -113,8 +116,8 @@ export default function Chat() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ message: first.content }),
             });
-            const { title } = await res.json();
-            saveTitle(currentId, title);
+            const { title } = await res.json() as { title: string };
+            await saveTitle(currentId, title);
           } catch {}
         }
       }
@@ -123,7 +126,6 @@ export default function Chat() {
 
   useEffect(() => {
     messagesRef.current = messages;
-    // When a new user message lands, attach the pending image preview to it
     if (pendingImagePreviewRef.current && messages.length > 0) {
       const last = messages[messages.length - 1];
       if (last.role === 'user') {
@@ -134,20 +136,25 @@ export default function Chat() {
     }
   }, [messages]);
 
-  // Load theme
+  // ── Theme ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const savedTheme = (localStorage.getItem('anime-gpt-theme') as 'dark' | 'light') || 'dark';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
 
-  // Load suggestions (cached 24 h)
+  // ── Suggestions (cached 24 h) ─────────────────────────────────────────────
+
   useEffect(() => {
     const load = async () => {
       try {
         const cached = localStorage.getItem(SUGGESTIONS_CACHE_KEY);
         if (cached) {
-          const { suggestions: s, generatedAt } = JSON.parse(cached);
+          const { suggestions: s, generatedAt } = JSON.parse(cached) as {
+            suggestions: Array<{ title: string; prompt: string }>;
+            generatedAt: number;
+          };
           if (Date.now() - generatedAt < SUGGESTIONS_TTL) {
             setSuggestions(s);
             setSuggestionsLoading(false);
@@ -155,39 +162,61 @@ export default function Chat() {
           }
         }
       } catch {}
-
       try {
         const res = await fetch('/api/suggestions');
-        const data = await res.json();
+        const data = await res.json() as {
+          suggestions: Array<{ title: string; prompt: string }>;
+          generatedAt: number;
+        };
         setSuggestions(data.suggestions);
         localStorage.setItem(SUGGESTIONS_CACHE_KEY, JSON.stringify(data));
-      } catch {
-        // silent — show nothing rather than crash
-      } finally {
-        setSuggestionsLoading(false);
-      }
+      } catch {}
+      finally { setSuggestionsLoading(false); }
     };
     load();
   }, []);
 
-  // On mount: restore latest conversation or create a blank one
-  useEffect(() => {
-    const saved = readStorage();
-    if (saved.length > 0) {
-      const latest = saved.sort((a, b) => b.updatedAt - a.updatedAt)[0];
-      setConvId(latest.id);
-      setActiveId(latest.id);
-      setMessages(latest.messages);
-    } else {
-      const c = createConversation();
-      setConvId(c.id);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // ── Initial conversation load (after hook finishes loading) ───────────────
 
-  // Auto-scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (loading) return;
+    if (convId !== null) return; // already active — don't override
+    if (conversations.length === 0) return;
+    const latest = conversations[0]; // hook sorts by updatedAt desc
+    convIdRef.current = latest.id;
+    setConvId(latest.id);
+    setMessages(latest.messages);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, conversations.length]);
+
+  // ── Sign-in / sign-out transitions ────────────────────────────────────────
+
+  useEffect(() => {
+    const wasGuest = !prevLoggedInRef.current;
+    const isNowLoggedIn = isLoggedIn;
+    prevLoggedInRef.current = isLoggedIn;
+
+    if (wasGuest && isNowLoggedIn) {
+      // Migration runs inside useConversations when isLoggedIn flips.
+      // Reset chat state so the UI starts fresh for the authenticated session.
+      migrateLocalToCloud().then(() => {
+        setMessages([]);
+        setConvId(null);
+        convIdRef.current = null;
+        reset(); // clear usage counter
+      });
+    }
+
+    if (!wasGuest && !isNowLoggedIn) {
+      // Signed out — clear in-memory state immediately
+      setMessages([]);
+      setConvId(null);
+      convIdRef.current = null;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -196,8 +225,16 @@ export default function Chat() {
     document.documentElement.setAttribute('data-theme', newTheme);
   };
 
-  const handleNew = () => {
-    const c = createConversation();
+  const ensureConv = useCallback(async () => {
+    if (!convIdRef.current) {
+      const c = await createConversation();
+      convIdRef.current = c.id;
+      setConvId(c.id);
+    }
+  }, [createConversation]);
+
+  const handleNew = async () => {
+    const c = await createConversation();
     convIdRef.current = c.id;
     setConvId(c.id);
     setMessages([]);
@@ -205,14 +242,12 @@ export default function Chat() {
   };
 
   const handleSelect = (id: string) => {
-    // Save current conversation using ref (always fresh, even if state is stale)
     if (convIdRef.current && messagesRef.current.length > 0) {
       saveMessages(convIdRef.current, messagesRef.current);
     }
-    const fresh = readStorage();
-    const found = fresh.find(c => c.id === id);
+    const found = conversations.find(c => c.id === id);
     if (found) {
-      convIdRef.current = id;   // update immediately before any async onFinish can fire
+      convIdRef.current = id;
       setActiveId(id);
       setConvId(id);
       setMessages(found.messages);
@@ -220,28 +255,36 @@ export default function Chat() {
     setSidebarOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    const nextId = deleteConversation(id, convId);
-    if (id === convId) {
-      if (nextId) {
-        const fresh = readStorage();
-        const found = fresh.find(c => c.id === nextId);
-        convIdRef.current = nextId;
-        setConvId(nextId);
-        setMessages(found?.messages ?? []);
-      } else {
-        convIdRef.current = null;
-        setConvId(null);
-        setMessages([]);
-      }
+  const handleDelete = async (id: string) => {
+    // Compute next state from current in-memory list before the async delete
+    const afterDelete = conversations.filter(c => c.id !== id);
+    const switchingAway = id === convId;
+    const nextConv = switchingAway ? (afterDelete[0] ?? null) : null;
+
+    await deleteConversation(id, convId);
+
+    if (switchingAway) {
+      convIdRef.current = nextConv?.id ?? null;
+      setConvId(nextConv?.id ?? null);
+      setMessages(nextConv?.messages ?? []);
     }
   };
 
-  const handleClearAll = () => {
-    clearAll();
+  const handleClearAll = async () => {
+    await clearAll();
+    convIdRef.current = null;
     setConvId(null);
     setMessages([]);
   };
+
+  const handleSignOut = async () => {
+    setMessages([]);
+    setConvId(null);
+    convIdRef.current = null;
+    await signOut({ redirect: false });
+  };
+
+  // ── Mic ───────────────────────────────────────────────────────────────────
 
   const handleMicClick = async () => {
     if (isRecording) {
@@ -262,21 +305,13 @@ export default function Chat() {
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: 'audio/webm',
-        });
-
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setIsTranscribing(true);
         try {
           const formData = new FormData();
           formData.append('audio', audioBlob, 'recording.webm');
-
-          const res = await fetch('/api/transcribe', {
-            method: 'POST',
-            body: formData,
-          });
-
-          const data = await res.json();
+          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const data = await res.json() as { text?: string };
           if (data.text) {
             const syntheticEvent = {
               target: { value: input + (input ? ' ' : '') + data.text },
@@ -298,18 +333,10 @@ export default function Chat() {
     }
   };
 
-  // Ensure a conversation exists before any append/submit — updates refs synchronously
-  const ensureConv = () => {
-    if (!convIdRef.current) {
-      const c = createConversation();
-      convIdRef.current = c.id;
-      setConvId(c.id);
-    }
-  };
+  // ── Image / submit ────────────────────────────────────────────────────────
 
-  // Auto-identify flow: friendly display text in chat, full structured prompt sent to API
-  const submitImageIdentify = (imageData: { base64: string; mimeType: string; previewUrl: string }) => {
-    ensureConv();
+  const submitImageIdentify = async (imageData: { base64: string; mimeType: string; previewUrl: string }) => {
+    await ensureConv();
     pendingImagePreviewRef.current = imageData.previewUrl;
     append(
       { role: 'user', content: '🔍 Identify this anime' },
@@ -327,10 +354,7 @@ export default function Chat() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Image must be under 10MB');
-      return;
-    }
+    if (file.size > 10 * 1024 * 1024) { alert('Image must be under 10MB'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
@@ -340,11 +364,9 @@ export default function Chat() {
         previewUrl: result,
       };
       if (isFeatureModeRef.current) {
-        // Feature card path: auto-submit immediately with hidden structured prompt
         isFeatureModeRef.current = false;
         submitImageIdentify(imageData);
       } else {
-        // Normal attach path: show preview, let user add text or hit send
         setPendingImage(imageData);
       }
     };
@@ -359,10 +381,7 @@ export default function Chat() {
     e.preventDefault();
     const file = imageItem.getAsFile();
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Image must be under 10MB');
-      return;
-    }
+    if (file.size > 10 * 1024 * 1024) { alert('Image must be under 10MB'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
@@ -375,7 +394,7 @@ export default function Chat() {
     reader.readAsDataURL(file);
   };
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isLoading) return;
     if (!input.trim() && !pendingImage) return;
@@ -386,13 +405,10 @@ export default function Chat() {
     if (pendingImage) {
       const snap = pendingImage;
       setPendingImage(null);
-
       if (!input.trim()) {
-        // Image only → structured identify (same as feature card flow)
-        submitImageIdentify(snap);
+        await submitImageIdentify(snap);
       } else {
-        // Image + custom text → send user's question to GPT-4o
-        ensureConv();
+        await ensureConv();
         pendingImagePreviewRef.current = snap.previewUrl;
         handleSubmit(e, {
           body: { imageBase64: snap.base64, mimeType: snap.mimeType },
@@ -401,7 +417,7 @@ export default function Chat() {
       return;
     }
 
-    ensureConv();
+    await ensureConv();
     handleSubmit(e);
   };
 
@@ -419,22 +435,24 @@ export default function Chat() {
     el.style.height = `${el.scrollHeight}px`;
   };
 
-  // Reset textarea height after submit
   useEffect(() => {
     if (!input && inputRef.current) {
       inputRef.current.style.height = 'auto';
     }
   }, [input]);
 
-  // Reset usage counter and persist messages when user signs in
   useEffect(() => {
-    if (isLoggedIn && count > 0) {
-      reset();
-      if (messages.length > 0 && convId) {
-        saveMessages(convId, messages);
-      }
-    }
-  }, [isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Wrap append so prompt suggestions also ensure a conversation exists
+  const handleSuggestionAppend = useCallback(async (
+    message: Parameters<typeof append>[0],
+    options?: Parameters<typeof append>[1]
+  ) => {
+    await ensureConv();
+    return append(message, options);
+  }, [ensureConv, append]);
 
   return (
     <div className="app-shell">
@@ -474,6 +492,7 @@ export default function Chat() {
                 name={session.user?.name}
                 email={session.user?.email}
                 image={session.user?.image}
+                onSignOut={handleSignOut}
               />
             ) : (
               <button
@@ -531,7 +550,7 @@ export default function Chat() {
         {messages.length === 0 && (
           <div className="suggestions-section">
             <PromptSuggestionsRow
-              onSubmit={append}
+              onSubmit={handleSuggestionAppend}
               suggestions={suggestions}
               isLoading={suggestionsLoading}
             />
