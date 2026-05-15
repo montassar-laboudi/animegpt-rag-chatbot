@@ -28,7 +28,7 @@ Users can:
 
 <tr>
 <td width="50%" align="center">
-<img src="./test/01-hero-chat-dark.png" width="100%" alt="AnimeGPT main chat interface" />
+<img src="./test/01-anime-chat-dark.png" width="100%" alt="AnimeGPT main chat interface" />
 <br />
 <em>RAG-powered anime conversations with streamed GPT-4o-mini responses.</em>
 </td>
