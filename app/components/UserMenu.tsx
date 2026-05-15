@@ -30,11 +30,12 @@ export default function UserMenu({ name, email, image, onSignOut }: Props) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
     }
+    await fetch('/api/conversations', { method: 'DELETE' });
     localStorage.clear();
     signOut({ callbackUrl: '/' });
   };
