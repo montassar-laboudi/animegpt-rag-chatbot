@@ -28,13 +28,13 @@ async function getCollection() {
 // GET — load all conversations for the signed-in user
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) {
-    return Response.json({ conversations: [] });
+  if (!session?.user?.email) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const col = await getCollection();
   const docs = await col
-    .find({ userId: session.user.id })
+    .find({ userId: session.user.email })
     .sort({ updatedAt: -1 })
     .toArray();
 
@@ -44,7 +44,7 @@ export async function GET() {
 // POST — create a new conversation
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -54,8 +54,8 @@ export async function POST(req: Request) {
   };
 
   const conversation: ConvDoc = {
-    _id: Date.now().toString(),
-    userId: session.user.id,
+    _id: crypto.randomUUID(),
+    userId: session.user.email,
     title: body.title ?? 'New Chat',
     messages: body.messages ?? [],
     createdAt: Date.now(),
@@ -71,12 +71,12 @@ export async function POST(req: Request) {
 // DELETE — clear all conversations for the signed-in user
 export async function DELETE() {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const col = await getCollection();
-  await col.deleteMany({ userId: session.user.id });
+  await col.deleteMany({ userId: session.user.email });
 
   return Response.json({ success: true });
 }

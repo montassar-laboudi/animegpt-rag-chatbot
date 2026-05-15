@@ -41,7 +41,7 @@ export async function PATCH(
   const col = await getCollection();
   // userId filter ensures users can only update their own conversations
   await col.updateOne(
-    { _id: id, userId: session.user.id },
+    { _id: id, userId: session.user.email },
     { $set: { ...body, updatedAt: Date.now() } }
   );
 
@@ -62,7 +62,7 @@ export async function DELETE(
 
   const col = await getCollection();
   // userId filter ensures users can only delete their own conversations
-  await col.deleteOne({ _id: id, userId: session.user.id });
+  await col.deleteOne({ _id: id, userId: session.user.email });
 
   return Response.json({ success: true });
 }

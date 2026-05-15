@@ -10,7 +10,7 @@ import Sidebar from './components/Sidebar';
 import SignInModal from './components/SignInModal';
 import UsageBanner from './components/UsageBanner';
 import UserMenu from './components/UserMenu';
-import { useConversations, Conversation } from '../lib/useConversations';
+import { useConversations, Conversation, StoredMessage } from '../lib/useConversations';
 import { useUsageCounter } from '../lib/useUsageCounter';
 import logoSrc from './assets/AG-Logo.png';
 import aotSrc from './assets/Camera.png';
@@ -82,6 +82,7 @@ export default function Chat() {
   const pendingImagePreviewRef = useRef<string | null>(null);
   const isFeatureModeRef = useRef(false);
   const [messageImages, setMessageImages] = useState<Record<string, string>>({});
+  const blobUrlsRef = useRef<Record<string, string>>({});
 
   const { count, increment, reset, isAtLimit, showWarning, remaining } = useUsageCounter(isLoggedIn);
 
@@ -91,7 +92,7 @@ export default function Chat() {
   // Keep convIdRef in sync
   useEffect(() => { convIdRef.current = convId; }, [convId]);
 
-  const { messages, setMessages, input, handleInputChange,
+  const { messages, setMessages, input, handleInputChange, setInput,
           handleSubmit, append, isLoading } = useChat({
     onFinish: async (message) => {
       const currentId = convIdRef.current;
@@ -101,7 +102,11 @@ export default function Chat() {
       const all = current.some(m => m.id === message.id)
         ? current
         : [...current, message];
-      await saveMessages(currentId, all);
+      const storedMessages: StoredMessage[] = all.map(m => ({
+        ...m,
+        imageUrl: blobUrlsRef.current[m.id],
+      }));
+      await saveMessages(currentId, storedMessages);
 
       // Generate title only once per conversation
       const stored = conversationsRef.current.find(c => c.id === currentId);
@@ -109,12 +114,18 @@ export default function Chat() {
       if (needsTitle && !titleDoneRef.current.has(currentId)) {
         titleDoneRef.current.add(currentId);
         const first = all.find(m => m.role === 'user');
+        const firstAssistant = all.find(m => m.role === 'assistant');
         if (first) {
           try {
             const res = await fetch('/api/generate-title', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: first.content }),
+              body: JSON.stringify({
+                message: typeof first.content === 'string' ? first.content : '',
+                assistantMessage: firstAssistant && typeof firstAssistant.content === 'string'
+                  ? firstAssistant.content
+                  : undefined,
+              }),
             });
             const { title } = await res.json() as { title: string };
             await saveTitle(currentId, title);
@@ -243,7 +254,7 @@ export default function Chat() {
 
   const handleSelect = (id: string) => {
     if (convIdRef.current && messagesRef.current.length > 0) {
-      saveMessages(convIdRef.current, messagesRef.current);
+      saveMessages(convIdRef.current, messagesRef.current as StoredMessage[]);
     }
     const found = conversations.find(c => c.id === id);
     if (found) {
@@ -337,9 +348,32 @@ export default function Chat() {
 
   const submitImageIdentify = async (imageData: { base64: string; mimeType: string; previewUrl: string }) => {
     await ensureConv();
+    const messageId = crypto.randomUUID();
+
+    if (isLoggedIn && convIdRef.current) {
+      try {
+        const byteString = atob(imageData.base64);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+        const file = new File([new Blob([ab], { type: imageData.mimeType })], `${messageId}.jpg`, { type: imageData.mimeType });
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('conversationId', convIdRef.current);
+        fd.append('messageId', messageId);
+        const res = await fetch('/api/upload-image', { method: 'POST', body: fd });
+        if (res.ok) {
+          const { url } = await res.json() as { url: string };
+          blobUrlsRef.current[messageId] = url;
+        }
+      } catch (err) {
+        console.error('Image upload failed:', err);
+      }
+    }
+
     pendingImagePreviewRef.current = imageData.previewUrl;
     append(
-      { role: 'user', content: '🔍 Identify this anime' },
+      { id: messageId, role: 'user', content: '🔍 Identify this anime' },
       {
         body: {
           imageBase64: imageData.base64,
@@ -409,10 +443,33 @@ export default function Chat() {
         await submitImageIdentify(snap);
       } else {
         await ensureConv();
+        const messageId = crypto.randomUUID();
+        if (isLoggedIn && convIdRef.current) {
+          try {
+            const byteString = atob(snap.base64);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            const file = new File([new Blob([ab], { type: snap.mimeType })], `${messageId}.jpg`, { type: snap.mimeType });
+            const fd = new FormData();
+            fd.append('image', file);
+            fd.append('conversationId', convIdRef.current);
+            fd.append('messageId', messageId);
+            const res = await fetch('/api/upload-image', { method: 'POST', body: fd });
+            if (res.ok) {
+              const { url } = await res.json() as { url: string };
+              blobUrlsRef.current[messageId] = url;
+            }
+          } catch (err) {
+            console.error('Image upload failed:', err);
+          }
+        }
         pendingImagePreviewRef.current = snap.previewUrl;
-        handleSubmit(e, {
-          body: { imageBase64: snap.base64, mimeType: snap.mimeType },
-        });
+        append(
+          { id: messageId, role: 'user', content: input },
+          { body: { imageBase64: snap.base64, mimeType: snap.mimeType } }
+        );
+        setInput('');
       }
       return;
     }
@@ -530,7 +587,7 @@ export default function Chat() {
           ) : (
             <div className="messages-list">
               {messages.map((message, index) => (
-                <Bubble key={index} message={message} imagePreview={messageImages[message.id]} />
+                <Bubble key={index} message={message as StoredMessage} imagePreview={messageImages[message.id]} />
               ))}
               {isLoading && messages[messages.length - 1]?.role === 'user' && (
                 <div className="bubble-wrapper assistant">

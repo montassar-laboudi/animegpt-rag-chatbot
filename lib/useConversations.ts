@@ -2,10 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Message } from 'ai';
 
+export interface StoredMessage extends Message {
+  imageUrl?: string;
+}
+
 export interface Conversation {
   id: string;
   title: string;
-  messages: Message[];
+  messages: StoredMessage[];
   createdAt: number;
   updatedAt: number;
 }
@@ -36,7 +40,7 @@ function localClear() {
 interface CloudConv {
   _id: string;
   title: string;
-  messages: Message[];
+  messages: StoredMessage[];
   createdAt: number;
   updatedAt: number;
 }
@@ -45,7 +49,7 @@ function fromCloud(doc: CloudConv): Conversation {
   return {
     id: doc._id,
     title: doc.title,
-    messages: doc.messages ?? [],
+    messages: (doc.messages ?? []) as StoredMessage[],
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -116,7 +120,7 @@ export function useConversations(isLoggedIn: boolean) {
     }
 
     const conv: Conversation = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: 'New Chat',
       messages: [],
       createdAt: Date.now(),
@@ -131,7 +135,7 @@ export function useConversations(isLoggedIn: boolean) {
 
   // ── Save messages ─────────────────────────────────────────────────────────
 
-  const saveMessages = useCallback(async (id: string, messages: Message[]) => {
+  const saveMessages = useCallback(async (id: string, messages: StoredMessage[]) => {
     if (!id) return;
     setConversations(prev =>
       prev.map(c => c.id === id ? { ...c, messages, updatedAt: Date.now() } : c)

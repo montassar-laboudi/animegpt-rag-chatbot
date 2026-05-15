@@ -1,13 +1,13 @@
 'use client';
 
-import { Message } from 'ai';
 import Image from 'next/image';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import logoSrc from '../assets/AG-Logo.png';
+import { StoredMessage } from '../../lib/useConversations';
 
 interface BubbleProps {
-  message: Message;
+  message: StoredMessage;
   imagePreview?: string;
 }
 
@@ -32,8 +32,14 @@ export default function Bubble({ message, imagePreview }: BubbleProps) {
       <div className={`bubble ${isUser ? 'user-bubble' : 'assistant-bubble'}`}>
         {isUser ? (
           <>
-            {imagePreview && (
-              <img src={imagePreview} alt="uploaded" className="bubble-image" />
+            {(message.imageUrl || imagePreview) && (
+              <img
+                src={message.imageUrl ?? imagePreview}
+                alt="Anime image"
+                className="bubble-image"
+                style={{ maxWidth: 280, maxHeight: 280, borderRadius: 8, marginTop: 8, objectFit: 'cover', display: 'block' }}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+              />
             )}
             {message.content && <p className="bubble-text">{message.content}</p>}
           </>
