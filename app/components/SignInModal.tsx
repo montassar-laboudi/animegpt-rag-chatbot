@@ -6,7 +6,7 @@ export default function SignInModal() {
     <div className="modal-overlay">
       <div className="modal-card">
         <div className="modal-icon">✦</div>
-        <h2 className="modal-title">You have used your 10 free questions</h2>
+        <h2 className="modal-title">You have used your 5 free questions</h2>
         <p className="modal-subtitle">
           Sign in with Google to get unlimited access and save
           your conversation history across all devices.
@@ -18,7 +18,7 @@ export default function SignInModal() {
           <GoogleIcon />
           Continue with Google
         </button>
-        <p className="modal-note">Free forever · No credit card needed</p>
+        <p className="modal-note">Free · No credit card needed</p>
       </div>
     </div>
   );
