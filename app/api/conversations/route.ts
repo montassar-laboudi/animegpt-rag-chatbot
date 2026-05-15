@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { DataAPIClient } from '@datastax/astra-db-ts';
+import { del } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
   return Response.json({ conversation });
 }
 
-// DELETE — clear all conversations for the signed-in user
+// DELETE — clear all conversations and their Blob images for the signed-in user
 export async function DELETE() {
   const session = await auth();
   if (!session?.user?.email) {
@@ -76,7 +77,21 @@ export async function DELETE() {
   }
 
   const col = await getCollection();
-  await col.deleteMany({ userId: session.user.email });
 
+  const docs = await col.find({ userId: session.user.email }).toArray();
+  const imageUrls = docs
+    .flatMap(doc => doc.messages as Array<{ imageUrl?: string }>)
+    .map(m => m.imageUrl)
+    .filter((url): url is string => typeof url === 'string');
+
+  if (imageUrls.length > 0) {
+    try {
+      await del(imageUrls);
+    } catch (err) {
+      console.error('Blob deletion failed:', err);
+    }
+  }
+
+  await col.deleteMany({ userId: session.user.email });
   return Response.json({ success: true });
 }

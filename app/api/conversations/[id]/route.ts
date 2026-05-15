@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import { DataAPIClient } from '@datastax/astra-db-ts';
+import { del } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 
@@ -48,21 +49,34 @@ export async function PATCH(
   return Response.json({ success: true });
 }
 
-// DELETE — remove one conversation
+// DELETE — remove one conversation and its Blob images
 export async function DELETE(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { id } = await context.params;
-
   const col = await getCollection();
-  // userId filter ensures users can only delete their own conversations
-  await col.deleteOne({ _id: id, userId: session.user.email });
 
+  const doc = await col.findOne({ _id: id, userId: session.user.email });
+  if (doc) {
+    const imageUrls = (doc.messages as Array<{ imageUrl?: string }>)
+      .map(m => m.imageUrl)
+      .filter((url): url is string => typeof url === 'string');
+
+    if (imageUrls.length > 0) {
+      try {
+        await del(imageUrls);
+      } catch (err) {
+        console.error('Blob deletion failed:', err);
+      }
+    }
+  }
+
+  await col.deleteOne({ _id: id, userId: session.user.email });
   return Response.json({ success: true });
 }

@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const blob = await put(
     `animegpt/${conversationId}/${messageId}.jpg`,
     image,
-    { access: 'public' }
+    { access: 'private' }
   );
 
   return Response.json({ url: blob.url });

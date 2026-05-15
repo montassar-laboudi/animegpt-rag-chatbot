@@ -34,7 +34,11 @@ export default function Bubble({ message, imagePreview }: BubbleProps) {
           <>
             {(message.imageUrl || imagePreview) && (
               <img
-                src={message.imageUrl ?? imagePreview}
+                src={
+                  message.imageUrl
+                    ? `/api/blob-image?url=${encodeURIComponent(message.imageUrl)}`
+                    : imagePreview
+                }
                 alt="Anime image"
                 className="bubble-image"
                 style={{ maxWidth: 280, maxHeight: 280, borderRadius: 8, marginTop: 8, objectFit: 'cover', display: 'block' }}
